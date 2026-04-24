@@ -1,9 +1,13 @@
 from setting import *
+from enemies import *
+from waves import *
+from wall import *
+from towers import *
 
 class Game:
     def __init__(self):
         pygame.init()
-        
+
         #setup
         self.width, self.height = width, height
         self.screen = pygame.display.set_mode((self.width, self.height))
@@ -49,9 +53,142 @@ class Game:
             fps = self.clock.tick(60)
 
     def game(self):
-        while True:
-            pygame.display.update()
-            fps = self.clock.tick(60)
+        wave_manager = WaveManager()
+        last_announced_wave = 0
 
+        wall = Wall()
+        projectiles = []
+        towers = []
+        
+        # Tower placement state
+        selected_tower_type = None
+        tower_types = {
+            '1': RedTower,
+            '2': BlueTower,
+            '3': GreenTower,
+            '4': YellowTower
+        }
+
+        while True:
+            self.screen.fill((40, 40, 40))
+            dt = self.clock.tick(60) / 1000
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                
+                # Tower selection with number keys
+                if event.type == pygame.KEYDOWN:
+                    if event.unicode in tower_types:
+                        selected_tower_type = event.unicode
+                
+                # Tower placement on mouse click
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if selected_tower_type:
+                        mouse_x, mouse_y = pygame.mouse.get_pos()
+                        tower_class = tower_types[selected_tower_type]
+                        towers.append(tower_class(mouse_x, mouse_y))
+
+            wave_manager.update(dt)
+            all_enemies = wave_manager.all_enemies
+
+            # wave logic
+            current_wave = wave_manager.current_wave
+            if current_wave != last_announced_wave:
+                last_announced_wave = current_wave
+
+            # enemy update
+            for enemy in all_enemies:
+                if isinstance(enemy, BlueEnemy):
+                    enemy.update(wall, projectiles)
+                elif isinstance(enemy, GreenEnemy):
+                    enemy.update(wall, all_enemies)
+                else:
+                    enemy.update(wall)
+
+            # Update towers (they shoot projectiles)
+            for tower in towers:
+                tower.update(all_enemies, projectiles)
+
+            # Update projectiles (move toward targets)
+            for proj in projectiles[:]:
+                proj.update()
+
+            # Tower projectiles damage enemies
+            for proj in projectiles[:]:
+                if proj.active and proj.target and proj.target.health > 0:
+                    # Check if projectile is close to target
+                    dist = math.hypot(proj.x - proj.target.pos_x, proj.y - proj.target.pos_y)
+                    if dist < proj.radius + 15:
+                        proj.target.health -= proj.damage
+                        proj.active = False
+
+            # draw
+            wall.draw(self.screen)
+
+            for enemy in all_enemies:
+                enemy.draw(self.screen)
+
+            # Draw towers
+            for tower in towers:
+                tower.draw(self.screen)
+
+            for proj in projectiles:
+                proj.draw(self.screen)
+
+            # removers
+            for enemy in all_enemies[:]:
+                if enemy.health <= 0:
+                    wave_manager.remove_enemy(enemy)
+            
+            for proj in projectiles[:]:
+                if not proj.active or proj.target is None or proj.target.health <= 0:
+                    projectiles.remove(proj)
+
+            # GAME OVER CHECK
+            if wall.health <= 0:
+                self.game_over()
+                return
+
+            pygame.display.update()
+            
+    def game_over(self):
+        """Display game over screen"""
+        while True:
+            self.screen.fill((40, 40, 40))
+            mouse = pygame.mouse.get_pos()
+
+            game_over_text = self.font.render("Game Over!", True, "red")
+            restart_button = pygame.Rect(width//2 - 90, height - 300, 180, 50)
+            menu_button = pygame.Rect(width//2 - 90, height - 200, 180, 50)
+
+            pygame.draw.rect(self.screen, "skyblue" if restart_button.collidepoint(mouse) else "darkgray", restart_button)
+            pygame.draw.rect(self.screen, "skyblue" if menu_button.collidepoint(mouse) else "darkgray", menu_button)
+
+            restart_text = self.font.render("Restart", True, "white")
+            menu_text = self.font.render("Menu", True, "white")
+
+            self.screen.blit(game_over_text, (width//2 - 150, height - 500))
+            self.screen.blit(restart_text, (width//2 - 80, height - 300))
+            self.screen.blit(menu_text, (width//2 - 50, height - 200))
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_buttons = pygame.mouse.get_pressed()
+                    if restart_button.collidepoint(mouse) and mouse_buttons[0]:
+                        self.game()
+                        return
+
+                    if menu_button.collidepoint(mouse) and mouse_buttons[0]:
+                        return
+
+            pygame.display.update()
+            self.clock.tick(60)
+            
 if __name__ == "__main__":
-    Game().start_menu() 
+    Game().start_menu()

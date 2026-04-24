@@ -9,4 +9,4 @@ os.environ['SDL_VIDEO_CENTERED'] = '1'
 pygame.init()
 info = pygame.display.Info()
 
-width,height = 800, 600
+width,height = 1280, 720

@@ -1,6 +1,5 @@
-# from settings import *
-from enemy import *
-import random
+from setting import *
+from enemies import *
 
 class WaveManager:
     def __init__(self):
@@ -8,9 +7,9 @@ class WaveManager:
         self.spawn_timer = 0
         self.enemies_spawned = 0
         self.all_enemies = []
-
+        self.base_spawn_interval = 1.5
         self.base_count = 10
-        self.spawn_interval = 1
+        self.spawn_interval = 1.5
         self.setup_wave()
         
         self.wave_complete = False
@@ -24,8 +23,11 @@ class WaveManager:
         self.spawn_timer = 0
 
         # scaling formulas
-        self.enemy_count = int(self.base_count * (1.25 ** self.current_wave))
-        self.spawn_interval = max(0.25, self.spawn_interval - self.current_wave * 0.005)
+        self.enemy_count = int(self.base_count * (1.25 ** (self.current_wave - 1)))
+        self.spawn_interval = max(
+            0.25,
+            self.base_spawn_interval - self.current_wave * 0.05
+        )
         self.speed_multiplier = 1.05 ** self.current_wave
         self.damage_multiplier = 1.08 ** self.current_wave
         self.health_multiplier = 1.05 ** self.current_wave
@@ -51,21 +53,24 @@ class WaveManager:
                 self.setup_wave()
 
     def spawn_enemy(self):
-        x = 1280 + 100
-        y = random.randint(0, 720)
+        x = width + 100
+        y = random.randint(0, height - 100)
 
-        # scale difficulty per wave
+        enemy_number = random.randint(0, 100)
+
         enemy_type_roll = random.random()
 
-        if enemy_type_roll < 0.6:
-            enemy = SeekerEnemy(x, y)
-        
+        if enemy_type_roll < 0.3:
+            enemy = BlueEnemy(y, 1)
+        elif enemy_type_roll < 0.7:
+            enemy = RedEnemy(y, 2)
         else:
-            enemy = TeleporterEnemy(x, y)
+            enemy = GreenEnemy(y, 3)
 
         enemy.speed_multiplier = self.speed_multiplier
         enemy.damage_multiplier = self.damage_multiplier
         enemy.health_multiplier = self.health_multiplier
+
         self.all_enemies.append(enemy)
 
     def remove_enemy(self, enemy):
