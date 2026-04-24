@@ -1,5 +1,5 @@
 # from settings import *
-# from enemy import *
+from enemy import *
 import random
 
 class WaveManager:
@@ -9,8 +9,8 @@ class WaveManager:
         self.enemies_spawned = 0
         self.all_enemies = []
 
-        self.base_count = 3
-        self.spawn_interval = 1.5
+        self.base_count = 10
+        self.spawn_interval = 1
         self.setup_wave()
         
         self.wave_complete = False
