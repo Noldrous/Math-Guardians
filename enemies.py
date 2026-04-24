@@ -1,5 +1,7 @@
 from setting import *
-import pygame
+
+def distance(a, b):
+    return math.sqrt((a.pos_x - b.pos_x)**2 + (a.pos_y - b.pos_y)**2)
 
 class Projectile:
     def __init__(self, x, y, speed, damage):
@@ -85,7 +87,7 @@ class RedEnemy(Enemy):
 class BlueEnemy(Enemy):
     def __init__(self, y, number):
         super().__init__(health=80, speed=1.5, damage=8, y=y)
-        self.attack_range = 300
+        self.attack_range = random.randint(250, 400)
         self.cooldown = 0
         self.state = "moving"
 
@@ -117,28 +119,62 @@ class BlueEnemy(Enemy):
     
 class GreenEnemy(Enemy):
     def __init__(self, y, number):
-        super().__init__(health=100, speed=1.8, damage=2, y=y)
+        super().__init__(health=100, speed=1, damage=2, y=y)
+
+        self.state = "moving"
+
         self.heal_amount = 5
-        self.heal_range = 150
+        self.heal_range = 300
+
+        self.attack_range = random.randint(40, 80)
         self.cooldown = 0
 
     def draw(self, screen):
         pygame.draw.rect(screen, "GREEN", (self.pos_x, self.pos_y, 20, 20))
 
-    def update(self, enemies):
+    def update(self, gate, enemies):
 
-        self.pos_x -= self.speed * self.speed_multiplier
+        distance_to_gate = self.pos_x - (gate.x + gate.width)
 
-        if self.cooldown <= 0:
+        if any(
+            enemy != self and distance(self, enemy) < self.heal_range
+            for enemy in enemies
+        ):
+            self.state = "healing"
+        else:
+            self.state = "moving"
 
-            for enemy in enemies:
+        if distance_to_gate <= self.attack_range:
+            self.state = "attacking"
 
-                distance = abs(enemy.pos_x - self.pos_x)
 
-                if distance < self.heal_range and enemy != self:
-                    enemy.health = min(enemy.health + self.heal_amount, enemy.max_health)
+        if self.state == "moving":
+            self.pos_x -= self.speed * self.speed_multiplier
 
-            self.cooldown = 120
+        elif self.state == "healing":
+            self.pos_x -= self.speed * 0.5
 
-        if self.cooldown > 0:
-            self.cooldown -= 1
+            if self.cooldown <= 0:
+                for enemy in enemies:
+                    if enemy != self and distance(self, enemy) < self.heal_range:
+                        enemy.health = min(
+                            enemy.health + self.heal_amount,
+                            enemy.max_health
+                        )
+
+                self.cooldown = 120
+            else:
+                self.cooldown -= 1
+
+        elif self.state == "attacking":
+            if self.cooldown <= 0:
+                gate.take_damage(self.damage)
+                self.cooldown = 90  # attack speed
+            else:
+                self.cooldown -= 1
+
+            if any(
+                enemy != self and distance(self, enemy) < self.heal_range
+                for enemy in enemies
+            ):
+                self.state = "healing"

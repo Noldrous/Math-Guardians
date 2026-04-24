@@ -60,9 +60,9 @@ class WaveManager:
 
         enemy_type_roll = random.random()
 
-        if enemy_type_roll < 0.33:
+        if enemy_type_roll < 0.3:
             enemy = BlueEnemy(y, 1)
-        elif enemy_type_roll < 0.66:
+        elif enemy_type_roll < 0.7:
             enemy = RedEnemy(y, 2)
         else:
             enemy = GreenEnemy(y, 3)
