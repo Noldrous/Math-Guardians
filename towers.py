@@ -105,9 +105,9 @@ class BaseTower(ABC):
     # Abstract base class for all towers
     # Gun type configs: {type: (damage, fire_rate, cost)}
     GUN_CONFIGS = {
-        "machinegun": {"damage": 5, "fire_rate": 8, "cost": 80, "rounds": 3, "max_ammo": 10},
-        "sniper": {"damage": 35, "fire_rate": 60, "cost": 120, "rounds": 1, "max_ammo": 5},
-        "bazooka": {"damage": 40, "fire_rate": 50, "cost": 150, "rounds": 1, "max_ammo": 2}
+        "machinegun": {"damage": 5, "fire_rate": 8, "cost": 80, "rounds": 3, "max_ammo": 10, "range": 500},
+        "sniper": {"damage": 35, "fire_rate": 60, "cost": 120, "rounds": 1, "max_ammo": 5, "range": 800},
+        "bazooka": {"damage": 40, "fire_rate": 50, "cost": 150, "rounds": 1, "max_ammo": 2, "range": 450}
     }
 
     def __init__(self, x: int, y: int, tower_color: Tuple[int, int, int], 
@@ -125,8 +125,9 @@ class BaseTower(ABC):
         self.rounds = gun_config["rounds"]
         self.max_ammo = gun_config["max_ammo"]
         self.current_ammo = self.max_ammo  # Start with full ammo
-        
-        self.range_radius = range_radius
+
+        # Use gun config range if default range_radius (999) is used, otherwise use provided range_radius
+        self.range_radius = gun_config["range"] if range_radius == 999 else range_radius
         self.cooldown = 0
         self.size = 40
         self.target = None

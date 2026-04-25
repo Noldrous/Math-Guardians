@@ -17,7 +17,6 @@ class UpgradeManager:
         btn_y = screen_height - 700 
         btn_size = (80, 80)
         
-   
         button_info = [
             ("machinegun", "assets/img/upgrade_button/upgrade_machine_gun.webp", 40),
             ("sniper", "assets/img/upgrade_button/upgrade_sniper.webp", 160),

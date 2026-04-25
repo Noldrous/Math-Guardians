@@ -1,5 +1,6 @@
 from setting import *
 import spritesheet
+from particle import Particle
 
 def distance(a, b):
     return math.sqrt((a.pos_x - b.pos_x)**2 + (a.pos_y - b.pos_y)**2)
@@ -12,7 +13,7 @@ class Projectile:
         self.radius = 6
         self.is_laser = False
 
-    def update(self, wall):
+    def update(self, wall, particles):
         self.pos.x -= self.speed
 
         # collision with wall
@@ -21,6 +22,10 @@ class Projectile:
             wall.y < self.pos.y < wall.y + wall.height
         ):
             wall.take_damage(self.damage)
+
+            for _ in range(10):
+                particles.append(Particle(self.pos.x, self.pos.y))
+
             return False  # destroy projectile
 
         return self.pos.x > 0
@@ -42,11 +47,16 @@ class Laser(Projectile):
         self.duration = 12  # frames
         self.age = 0
 
-    def update(self, wall):
+    def update(self, wall, particles):
         self.age += 1
         # Laser damages wall if beam intersects with wall's y-range
         if wall.y < self.pos.y < wall.y + wall.height:
             wall.take_damage(self.damage)
+
+            if self.age % 3 == 0:  
+                hit_x = wall.x + wall.width 
+                for _ in range(6):
+                    particles.append(Particle(hit_x, self.pos.y))
 
         # Destroy laser after duration
         return self.age < self.duration

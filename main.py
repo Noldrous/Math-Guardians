@@ -5,6 +5,7 @@ from wall import *
 from towers import *
 from tilemap1 import TileMap
 from upgrade import UpgradeManager
+from particle import Particle
 
 class Game:
     def __init__(self):
@@ -20,13 +21,15 @@ class Game:
         self.running = True
         self.assets = {
             "game_background": load_image_alpha("game_world/background.webp"),
-            "wall": load_image_alpha("game_world/wall.webp"),
             "menu_background": load_image_alpha("menu/background.png"),
             "title": load_image_alpha("menu/title.png"),
             "play_button": load_image_alpha("menu/play_button.png"),
             "instruction_button": load_image_alpha("menu/instructions_button.png"),
-            "instruction": load_image_alpha("menu/instruction.png"),
-            "exit_button": load_image_alpha("menu/exit_button.png")
+            "instruction": load_image_alpha("menu/instructions.png"),
+            "exit_button": load_image_alpha("menu/exit_button.png"),
+            "return_button": load_image_alpha("menu/return.webp"),
+            "restart_button": load_image_alpha("menu/restart.webp"),
+            "game_over": load_image_alpha("menu/game_over.webp")
         }        
         self.show_popup = False
     
@@ -107,6 +110,51 @@ class Game:
             pygame.display.update()
             self.clock.tick(60)
 
+    def game_over(self):
+        return_button = pygame.transform.scale(self.assets["return_button"], (200, 100))
+        restart_button = pygame.transform.scale(self.assets["restart_button"], (200, 100))
+        game_over = pygame.transform.scale(self.assets["game_over"], (500, 200))
+        mouse = pygame.mouse.get_pos()
+
+        restart_rect = restart_button.get_rect(center=(self.width // 2, self.height - 350))
+        return_rect = return_button .get_rect(center=(self.width // 2, self.height - 220))
+        game_over_rect = game_over.get_rect(center=(self.width // 2, 150))
+
+        bg_x = 0
+        bg_speed = 0.5
+
+        while True:
+            # PARALLAX BACKGROUND
+            bg_x -= bg_speed
+            if bg_x <= -self.width:
+                bg_x = 0
+
+            self.screen.blit(self.assets["menu_background"], (bg_x, 0))
+            self.screen.blit(self.assets["menu_background"], (bg_x + self.width, 0))
+
+            # UI
+            self.screen.blit(game_over, game_over_rect)
+            self.draw_button(restart_button, restart_rect)
+            self.draw_button(return_button, return_rect)
+
+            # EVENTS
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        if restart_rect.collidepoint(event.pos):
+                            self.game()
+
+                        if return_rect.collidepoint(event.pos):
+                            self.start_menu()
+                        
+
+            pygame.display.update()
+            self.clock.tick(60)
+
     def game(self):
         level_map = TileMap()
         wave_manager = WaveManager()
@@ -115,6 +163,7 @@ class Game:
         wall = Wall()
         projectiles = []
         tower_projectiles = []
+        particles = []
         
         #loadimage
         game_background = self.assets["game_background"]
@@ -209,6 +258,9 @@ class Game:
             for proj in projectiles:
                 proj.draw(self.screen)
 
+            for p in particles:
+                p.draw(self.screen)
+
             # removers
             for enemy in all_enemies[:]:
                 if enemy.health <= 0:
@@ -216,13 +268,18 @@ class Game:
                     wave_manager.remove_enemy(enemy)
 
             for proj in projectiles[:]:
-                alive = proj.update(wall)
+                alive = proj.update(wall, particles)
                 if not alive:
                     projectiles.remove(proj)
 
             for tower_proj in tower_projectiles[:]:
                 if not tower_proj.active or tower_proj.target is None or tower_proj.target.health <= 0:
                     tower_projectiles.remove(tower_proj)
+
+            for p in particles[:]:
+                p.update()
+                if p.lifetime <= 0:
+                    particles.remove(p)
 
             upgrade_manager.draw(self.screen)
 
@@ -264,43 +321,5 @@ class Game:
 
             pygame.display.update()
             
-    def game_over(self):
-        """Display game over screen"""
-        while True:
-            self.screen.fill((40, 40, 40))
-            mouse = pygame.mouse.get_pos()
-
-            game_over_text = self.font.render("Game Over!", True, "red")
-            restart_button = pygame.Rect(width//2 - 90, height - 300, 180, 50)
-            menu_button = pygame.Rect(width//2 - 90, height - 200, 180, 50)
-
-            pygame.draw.rect(self.screen, "skyblue" if restart_button.collidepoint(mouse) else "darkgray", restart_button)
-            pygame.draw.rect(self.screen, "skyblue" if menu_button.collidepoint(mouse) else "darkgray", menu_button)
-
-            restart_text = self.font.render("Restart", True, "white")
-            menu_text = self.font.render("Menu", True, "white")
-
-            self.screen.blit(game_over_text, (width//2 - 150, height - 500))
-            self.screen.blit(restart_text, (width//2 - 80, height - 300))
-            self.screen.blit(menu_text, (width//2 - 50, height - 200))
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    mouse_buttons = pygame.mouse.get_pressed()
-                    if restart_button.collidepoint(mouse) and mouse_buttons[0]:
-                        self.game()
-                        return
-
-                    if menu_button.collidepoint(mouse) and mouse_buttons[0]:
-                        return
-
-            pygame.display.update()
-            self.clock.tick(60)
-            
 if __name__ == "__main__":
     Game().start_menu()
-    
