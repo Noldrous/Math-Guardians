@@ -17,6 +17,9 @@ class Game:
         self.font = pygame.font.SysFont("Arial", 40)
         self.running = True
 
+        self.bg_image = pygame.image.load("assets/img/blocks or background/background.webp").convert()
+        self.bg_image = pygame.transform.scale(self.bg_image, (self.width, 725))
+    
     def start_menu(self):
         while True:
 
@@ -62,8 +65,8 @@ class Game:
         projectiles = []
         tower_projectiles = []
 
+
         while True:
-            self.screen.fill((40, 40, 40))
             dt = self.clock.tick(60) / 1000
 
 
@@ -98,6 +101,16 @@ class Game:
             for tower in level_map.placed_towers:
                 tower.update(all_enemies, tower_projectiles)
 
+            # Remove towers with depleted ammo
+            for tower in level_map.placed_towers[:]:
+                if tower.current_ammo <= 0:
+                    level_map.placed_towers.remove(tower)
+                    # Also remove from occupied grid
+                    for grid_pos, grid_tower in list(level_map.occupied.items()):
+                        if grid_tower == tower:
+                            del level_map.occupied[grid_pos]
+                            break
+
             # Update projectiles (move toward targets)
             for tower_proj in tower_projectiles[:]:
                 tower_proj.update()
@@ -124,8 +137,10 @@ class Game:
                         tower_proj.active = False
 
             # draw
-            level_map.draw(self.screen)
+
+            self.screen.blit(self.bg_image, (0, 0))
             wall.draw(self.screen)
+            level_map.draw(self.screen)
 
             for enemy in all_enemies:
                 enemy.draw(self.screen)
@@ -193,8 +208,7 @@ class Game:
 
             pygame.display.update()
             self.clock.tick(60)
-
+            
 if __name__ == "__main__":
     Game().start_menu()
-
-    
+    #

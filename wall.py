@@ -10,11 +10,15 @@ class Wall:
         self.max_health = 1000
         self.health = self.max_health
 
+        self.image = pygame.image.load("assets//img/blocks or background/wall.webp").convert_alpha()
+        self.image = pygame.transform.scale(self.image, (self.width, self.height))
+
+
     def take_damage(self, damage):
         self.health -= damage
 
     def draw(self, screen):
-        pygame.draw.rect(screen, "brown", (self.x, self.y, self.width, self.height))
+        screen.blit(self.image, (self.x, self.y))
 
         # health bar
         health_ratio = self.health / self.max_health
