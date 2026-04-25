@@ -16,9 +16,10 @@ class Game:
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("Arial", 40)
         self.running = True
-
-        self.bg_image = pygame.image.load("assets/img/blocks or background/map.png").convert()
-        self.bg_image = pygame.transform.scale(self.bg_image, (self.width, 725))
+        self.assets = {
+            "game_background": load_image_alpha("game_world/background.webp"),
+            "wall": load_image_alpha("game_world/wall.webp")
+        }
     
     def start_menu(self):
         while True:
@@ -64,11 +65,13 @@ class Game:
         wall = Wall()
         projectiles = []
         tower_projectiles = []
-
+        
+        #loadimage
+        game_background = self.assets["game_background"]
+        game_background = pygame.transform.scale(game_background, (self.width, 725))
 
         while True:
             dt = self.clock.tick(60) / 1000
-
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -138,7 +141,7 @@ class Game:
 
             # draw
 
-            self.screen.blit(self.bg_image, (0, 0))
+            self.screen.blit(game_background, (0, 0))
             wall.draw(self.screen)
             level_map.draw(self.screen)
 
