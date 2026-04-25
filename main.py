@@ -16,7 +16,11 @@ class Game:
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("Arial", 40)
         self.running = True
-
+        self.assets = {
+            "game_background": load_image_alpha("game_world/background.webp"),
+            "wall": load_image_alpha("game_world/wall.webp")
+        }
+    
     def start_menu(self):
         while True:
 
@@ -61,11 +65,13 @@ class Game:
         wall = Wall()
         projectiles = []
         tower_projectiles = []
+        
+        #loadimage
+        game_background = self.assets["game_background"]
+        game_background = pygame.transform.scale(game_background, (self.width, 725))
 
         while True:
-            self.screen.fill((40, 40, 40))
             dt = self.clock.tick(60) / 1000
-
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -98,6 +104,16 @@ class Game:
             for tower in level_map.placed_towers:
                 tower.update(all_enemies, tower_projectiles)
 
+            # Remove towers with depleted ammo
+            for tower in level_map.placed_towers[:]:
+                if tower.current_ammo <= 0:
+                    level_map.placed_towers.remove(tower)
+                    # Also remove from occupied grid
+                    for grid_pos, grid_tower in list(level_map.occupied.items()):
+                        if grid_tower == tower:
+                            del level_map.occupied[grid_pos]
+                            break
+
             # Update projectiles (move toward targets)
             for tower_proj in tower_projectiles[:]:
                 tower_proj.update()
@@ -124,8 +140,10 @@ class Game:
                         tower_proj.active = False
 
             # draw
-            level_map.draw(self.screen)
+
+            self.screen.blit(game_background, (0, 0))
             wall.draw(self.screen)
+            level_map.draw(self.screen)
 
             for enemy in all_enemies:
                 enemy.draw(self.screen)
@@ -193,8 +211,7 @@ class Game:
 
             pygame.display.update()
             self.clock.tick(60)
-
+            
 if __name__ == "__main__":
     Game().start_menu()
-
-    
+    #
