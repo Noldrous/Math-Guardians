@@ -3,6 +3,7 @@ from enemies import *
 from waves import *
 from wall import *
 from towers import *
+from tilemap1 import TileMap
 
 class Game:
     def __init__(self):
@@ -53,43 +54,29 @@ class Game:
             fps = self.clock.tick(60)
 
     def game(self):
+        level_map = TileMap()
         wave_manager = WaveManager()
         last_announced_wave = 0
 
         wall = Wall()
         projectiles = []
-        towers = []
         tower_projectiles = []
-        
-        # Tower placement state
-        selected_tower_type = None
-        tower_types = {
-            '1': RedTower,
-            '2': BlueTower,
-            '3': GreenTower,
-            '4': YellowTower
-        }
+
 
         while True:
             self.screen.fill((40, 40, 40))
             dt = self.clock.tick(60) / 1000
 
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-                
-                # Tower selection with number keys
-                if event.type == pygame.KEYDOWN:
-                    if event.unicode in tower_types:
-                        selected_tower_type = event.unicode
-                
-                # Tower placement on mouse click
+
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if selected_tower_type:
-                        mouse_x, mouse_y = pygame.mouse.get_pos()
-                        tower_class = tower_types[selected_tower_type]
-                        towers.append(tower_class(mouse_x, mouse_y))
+                    if event.button == 1:                            
+                        # Ipapasa natin ang click sa TileMap
+                        level_map.handle_click(pygame.mouse.get_pos())
 
             wave_manager.update(dt)
             all_enemies = wave_manager.all_enemies
@@ -108,8 +95,8 @@ class Game:
                 else:
                     enemy.update(wall)
 
-            # Update towers (they shoot projectiles)
-            for tower in towers:
+# Update towers (kunin ang placed_towers mula sa level_map)
+            for tower in level_map.placed_towers:
                 tower.update(all_enemies, tower_projectiles)
 
             # Update projectiles (move toward targets)
@@ -125,15 +112,12 @@ class Game:
                         tower_proj.target.health -= tower_proj.damage
                         tower_proj.active = False
 
-            # draw
+# draw
+            level_map.draw(self.screen)
             wall.draw(self.screen)
 
             for enemy in all_enemies:
                 enemy.draw(self.screen)
-
-            # Draw towers
-            for tower in towers:
-                tower.draw(self.screen)
 
             for tower_proj in tower_projectiles:
                 tower_proj.draw(self.screen)
