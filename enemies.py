@@ -64,6 +64,7 @@ class RedEnemy(Enemy):
     def __init__(self, y, number):
         super().__init__(health=120, speed=2, damage=10, y=y)
         self.state = "moving"
+        self.type = "attacker"
         self.cooldown = 0
         self.color = (255, 0, 0)  # Red
         self.sprite_sheet_image = load_image_alpha("enemies/redguy.png")
@@ -74,7 +75,7 @@ class RedEnemy(Enemy):
         }
         self.animation_cooldowns = {
             "moving": 150,
-            "punch": 100
+            "punch": 250
         }
         
 
@@ -115,7 +116,7 @@ class RedEnemy(Enemy):
 
             if self.cooldown <= 0:
                 wall.take_damage(self.damage * self.damage_multiplier)
-                self.cooldown = 60
+                self.cooldown = 45
 
         if self.cooldown > 0:
             self.cooldown -= 1
@@ -130,6 +131,7 @@ class BlueEnemy(Enemy):
         self.attack_range = random.randint(250, 400)
         self.cooldown = 0
         self.state = "moving"
+        self.type = "attacker"
         self.color = (0, 0, 255)  # Blue
         self.sprite_sheet_image = load_image_alpha("enemies/blueguy.png")
         self.sprite_sheet = spritesheet.SpriteSheet(self.sprite_sheet_image)
@@ -200,6 +202,7 @@ class GreenEnemy(Enemy):
         super().__init__(health=100, speed=1, damage=2, y=y)
 
         self.state = "moving"
+        self.type = "healer"
 
         self.heal_amount = 5
         self.heal_range = 300
@@ -212,16 +215,24 @@ class GreenEnemy(Enemy):
         self.sprite_sheet = spritesheet.SpriteSheet(self.sprite_sheet_image)
         self.animations = {
             "moving":  [],
+            "healing": [],
+            "attacking": []
         }
         self.animation_cooldowns = {
             "moving": 150,
+            "healing": 200,
+            "attacking": 50
         }
         
 
         self.last_update = pygame.time.get_ticks()
         self.frame = 0
+        for x in range(4):
+            self.animations["moving"].append(self.sprite_sheet.get_image(x, 0, 447, 558, 0.12))
         for x in range(3):
-            self.animations["moving"].append(self.sprite_sheet.get_image(x, 0, 357, 446, 0.14))
+            self.animations["healing"].append(self.sprite_sheet.get_image(x, 1, 447, 558, 0.12))
+        for x in range(3):
+            self.animations["attacking"].append(self.sprite_sheet.get_image(x, 1, 447, 558, 0.12))
 
         self.animation_list = self.animations[self.state]
         self.animation_cooldown = self.animation_cooldowns[self.state]
@@ -232,36 +243,41 @@ class GreenEnemy(Enemy):
         screen.blit(flip_image, rect.topleft)
 
     def update(self, wall, enemies):
+        self.animation_list = self.animations[self.state]
+        self.animation_cooldown = self.animation_cooldowns[self.state]
+
         current_time = pygame.time.get_ticks()
         if current_time - self.last_update >= self.animation_cooldown:
             self.frame += 1
             self.last_update = current_time
             if self.frame >= len(self.animation_list):
                 self.frame = 0
-
+                
         distance_to_wall = self.pos_x - (wall.x + wall.width)
 
         if any(
             enemy != self and distance(self, enemy) < self.heal_range
             for enemy in enemies
         ):
+
             self.state = "healing"
         else:
+
             self.state = "moving"
 
         if distance_to_wall <= self.attack_range:
+
             self.state = "attacking"
 
-
         if self.state == "moving":
+
             self.pos_x -= self.speed * self.speed_multiplier
 
         elif self.state == "healing":
-            self.pos_x -= self.speed * 0.5
 
             if self.cooldown <= 0:
                 for enemy in enemies:
-                    if enemy != self and distance(self, enemy) < self.heal_range:
+                    if enemy != self and enemy.color != (0, 255, 0)  and distance(self, enemy) < self.heal_range:
                         enemy.health = min(
                             enemy.health + self.heal_amount,
                             enemy.max_health
@@ -272,6 +288,7 @@ class GreenEnemy(Enemy):
                 self.cooldown -= 1
 
         elif self.state == "attacking":
+
             if self.cooldown <= 0:
                 wall.take_damage(self.damage * self.damage_multiplier)
                 self.cooldown = 90  # attack speed
