@@ -40,7 +40,7 @@ class UpgradeManager:
     def draw(self, screen):
         for gun, rect in self.buttons.items():
             screen.blit(self.images[gun], rect)
-            
+
             cost_text = self.small_font.render(f"{self.costs[gun]} Coins", True, (255, 215, 0))
             cost_rect = cost_text.get_rect(centerx=rect.centerx, top=rect.bottom + 5)
             screen.blit(cost_text, cost_rect)

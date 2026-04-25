@@ -109,7 +109,7 @@ class BaseTower(ABC):
         "sniper": {"damage": 35, "fire_rate": 60, "cost": 120, "rounds": 1, "max_ammo": 5},
         "bazooka": {"damage": 40, "fire_rate": 50, "cost": 150, "rounds": 1, "max_ammo": 2}
     }
-    
+
     def __init__(self, x: int, y: int, tower_color: Tuple[int, int, int], 
                  gun_type: str = "machinegun", range_radius: int = 999):
         self.x = x
@@ -130,6 +130,21 @@ class BaseTower(ABC):
         self.cooldown = 0
         self.size = 40
         self.target = None
+
+        color_name = self._get_color_name()
+        # load base
+        base_path = f"assets/img/Turrets/{color_name}_{gun_type}_base.png"
+        self.base_sprite = pygame.image.load(base_path).convert_alpha()
+
+        # load turret head
+        head_path = f"assets/img/Turrets/{color_name}_{gun_type}_gun.png"
+        self.head_sprite = pygame.image.load(head_path).convert_alpha()
+
+        # resize
+        self.base_sprite = pygame.transform.scale(self.base_sprite, (80, 80))
+        self.head_sprite = pygame.transform.scale(self.head_sprite, (80, 80))
+
+        self.base_rect = self.base_sprite.get_rect(center=(self.x, self.y))
         
     @abstractmethod
     def is_valid_target(self, enemy) -> bool:      # DEFINE VALID TARGETS FOR EACH TOWER TYPE
@@ -185,7 +200,7 @@ class BaseTower(ABC):
         # Fire 3 machine gun rounds with slight angle spread
         if self.current_ammo <= 0:
             return
-        
+
         dx = self.target.pos_x - self.x
         dy = self.target.pos_y - self.y
         base_angle = math.atan2(dy, dx)
@@ -215,11 +230,11 @@ class BaseTower(ABC):
         # Fire one bazooka round with explosion radius
         if self.current_ammo <= 0:
             return
-        
+
         # You can customize splash_radius here (default is 150)
         proj = BazookaRound(self.x, self.y, self.target, self.damage, splash_radius=150)
         projectiles.append(proj)
-        
+
         self.current_ammo -= 1  # Decrement ammo after firing
         
     def refill_ammo(self):
@@ -234,40 +249,38 @@ class BaseTower(ABC):
                              (self.range_radius, self.range_radius), self.range_radius)
             screen.blit(range_surface, (self.x - self.range_radius, self.y - self.range_radius))
             
-    def draw(self, screen: pygame.Surface):
-        # Draw tower (triangle) and targeting line
-        # Create triangle points centered at tower position
-        radius = self.size // 2
-        
-        # Calculate rotation angle based on target direction
+    def _get_color_name(self):
+
+        if self.tower_color == (255,0,0):
+            return "red"
+
+        if self.tower_color == (0,255,0):
+            return "green"
+
+        if self.tower_color == (0,0,255):
+            return "blue"
+
+        return "unknown"
+    def draw(self, screen):
+
+        # draw base (does NOT rotate)
+        screen.blit(self.base_sprite, self.base_rect)
+
+        # calculate angle to target
         angle = 0
         if self.target:
             dx = self.target.pos_x - self.x
             dy = self.target.pos_y - self.y
-            angle = math.atan2(dy, dx)
-        
-        # Create triangle points and rotate them
-        local_points = [
-            (0, -radius),  # Top point
-            (radius, radius),  # Bottom right
-            (-radius, radius)   # Bottom left
-        ]
-        
-        # Rotate points around center
-        rotated_points = []
-        for px, py in local_points:
-            rotated_x = px * math.cos(angle) - py * math.sin(angle)
-            rotated_y = px * math.sin(angle) + py * math.cos(angle)
-            rotated_points.append((self.x + rotated_x, self.y + rotated_y))
-        
-        pygame.draw.polygon(screen, self.tower_color, rotated_points)
-        pygame.draw.polygon(screen, (255, 255, 255), rotated_points, 3)
-        
-        if self.target:
-            pygame.draw.line(screen, (255, 255, 0), (self.x, self.y), 
-                           (self.target.pos_x, self.target.pos_y), 2)
-        
-        # Draw ammo indicator
+            angle = -math.degrees(math.atan2(dy, dx)) + 90
+
+        # rotate turret head
+        rotated_head = pygame.transform.rotate(self.head_sprite, angle)
+        head_rect = rotated_head.get_rect(center=(self.x, self.y))
+
+        # draw rotating head
+        screen.blit(rotated_head, head_rect)
+
+        # ammo bar
         self._draw_ammo(screen)
     
     def _draw_ammo(self, screen: pygame.Surface):
