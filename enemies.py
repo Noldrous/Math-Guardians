@@ -111,8 +111,6 @@ class BlueEnemy(Enemy):
                     self.pos_y + 10,
                     speed=6,
                     damage=self.damage * self.damage_multiplier,
-                    
-                    
                 )
                 projectiles.append(proj)
 

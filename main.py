@@ -3,6 +3,7 @@ from enemies import *
 from waves import *
 from wall import *
 from towers import *
+from tilemap1 import TileMap
 
 class Game:
     def __init__(self):
@@ -53,42 +54,29 @@ class Game:
             fps = self.clock.tick(60)
 
     def game(self):
+        level_map = TileMap()
         wave_manager = WaveManager()
         last_announced_wave = 0
 
         wall = Wall()
         projectiles = []
-        towers = []
-        
-        # Tower placement state
-        selected_tower_type = None
-        tower_types = {
-            '1': RedTower,
-            '2': BlueTower,
-            '3': GreenTower,
-            '4': YellowTower
-        }
+        tower_projectiles = []
+
 
         while True:
             self.screen.fill((40, 40, 40))
             dt = self.clock.tick(60) / 1000
 
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-                
-                # Tower selection with number keys
-                if event.type == pygame.KEYDOWN:
-                    if event.unicode in tower_types:
-                        selected_tower_type = event.unicode
-                
-                # Tower placement on mouse click
+
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if selected_tower_type:
-                        mouse_x, mouse_y = pygame.mouse.get_pos()
-                        tower_class = tower_types[selected_tower_type]
-                        towers.append(tower_class(mouse_x, mouse_y))
+                    if event.button == 1:                            
+                        # Ipapasa natin ang click sa TileMap
+                        level_map.handle_click(pygame.mouse.get_pos())
 
             wave_manager.update(dt)
             all_enemies = wave_manager.all_enemies
@@ -107,32 +95,44 @@ class Game:
                 else:
                     enemy.update(wall)
 
-            # Update towers (they shoot projectiles)
-            for tower in towers:
-                tower.update(all_enemies, projectiles)
+            # Update towers (kunin ang placed_towers mula sa level_map)
+            for tower in level_map.placed_towers:
+                tower.update(all_enemies, tower_projectiles)
 
             # Update projectiles (move toward targets)
-            for proj in projectiles[:]:
-                proj.update()
+            for tower_proj in tower_projectiles[:]:
+                tower_proj.update()
 
             # Tower projectiles damage enemies
-            for proj in projectiles[:]:
-                if proj.active and proj.target and proj.target.health > 0:
+            for tower_proj in tower_projectiles[:]:
+                if tower_proj.active and tower_proj.target and tower_proj.target.health > 0:
                     # Check if projectile is close to target
-                    dist = math.hypot(proj.x - proj.target.pos_x, proj.y - proj.target.pos_y)
-                    if dist < proj.radius + 15:
-                        proj.target.health -= proj.damage
-                        proj.active = False
+                    dist = math.hypot(tower_proj.x - tower_proj.target.pos_x, tower_proj.y - tower_proj.target.pos_y)
+                    if dist < tower_proj.radius + 15:
+                        # Handle splash damage for bazooka
+                        if tower_proj.projectile_type == "bazooka" and not tower_proj.has_exploded:
+                            # Apply splash damage to all enemies in range
+                            explosion_x, explosion_y = tower_proj.target.pos_x, tower_proj.target.pos_y
+                            for enemy in all_enemies:
+                                if hasattr(enemy, 'pos_x') and hasattr(enemy, 'pos_y'):
+                                    splash_dist = math.hypot(enemy.pos_x - explosion_x, enemy.pos_y - explosion_y)
+                                    if splash_dist <= tower_proj.splash_radius:
+                                        enemy.health -= tower_proj.damage
+                            tower_proj.has_exploded = True
+                        else:
+                            # Normal damage for other projectiles
+                            tower_proj.target.health -= tower_proj.damage
+                        tower_proj.active = False
 
             # draw
+            level_map.draw(self.screen)
             wall.draw(self.screen)
 
             for enemy in all_enemies:
                 enemy.draw(self.screen)
 
-            # Draw towers
-            for tower in towers:
-                tower.draw(self.screen)
+            for tower_proj in tower_projectiles:
+                tower_proj.draw(self.screen)
 
             for proj in projectiles:
                 proj.draw(self.screen)
@@ -141,10 +141,15 @@ class Game:
             for enemy in all_enemies[:]:
                 if enemy.health <= 0:
                     wave_manager.remove_enemy(enemy)
-            
+
             for proj in projectiles[:]:
-                if not proj.active or proj.target is None or proj.target.health <= 0:
+                alive = proj.update(wall)
+                if not alive:
                     projectiles.remove(proj)
+
+            for tower_proj in tower_projectiles[:]:
+                if not tower_proj.active or tower_proj.target is None or tower_proj.target.health <= 0:
+                    tower_projectiles.remove(tower_proj)
 
             # GAME OVER CHECK
             if wall.health <= 0:
