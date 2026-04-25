@@ -95,11 +95,7 @@ class Game:
                 else:
                     enemy.update(wall)
 
-<<<<<<< HEAD
             # Update towers (kunin ang placed_towers mula sa level_map)
-=======
-# Update towers (kunin ang placed_towers mula sa level_map)
->>>>>>> f0012c61fae2664127376c9a33f5a3615fa5a15a
             for tower in level_map.placed_towers:
                 tower.update(all_enemies, tower_projectiles)
 
@@ -116,11 +112,7 @@ class Game:
                         tower_proj.target.health -= tower_proj.damage
                         tower_proj.active = False
 
-<<<<<<< HEAD
             # draw
-=======
-# draw
->>>>>>> f0012c61fae2664127376c9a33f5a3615fa5a15a
             level_map.draw(self.screen)
             wall.draw(self.screen)
 

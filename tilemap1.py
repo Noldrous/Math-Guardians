@@ -1,8 +1,4 @@
 import pygame
-<<<<<<< HEAD
-=======
-import math
->>>>>>> f0012c61fae2664127376c9a33f5a3615fa5a15a
 from towers import *
 
 class TileMap:
@@ -29,7 +25,6 @@ class TileMap:
         # UI (tower selection boxes)
         # =========================
         self.boxes = []
-<<<<<<< HEAD
         for i in range(3):
             self.boxes.append(pygame.Rect(20, 250 + (i * 90), 50, 50))
 
@@ -38,20 +33,6 @@ class TileMap:
         self.holding_color = None
         self.selected_box_index = -1
         self.show_menu = False
-=======
-        
-        for i in range(5):
-            self.boxes.append(pygame.Rect(20, 130 + (i * 90), 50, 50))
-        
-        # Dito na ma-i-store ang mga actual Tower objects (RedTower, GreenTower, etc.)
-        self.placed_towers = [] 
-
-        self.selected_box_index = -1 
-        self.holding_color = None    
-        self.show_menu = False        
-
-        self.colors = [(255,0,0), (0,255,0), (0,0,255)] 
->>>>>>> f0012c61fae2664127376c9a33f5a3615fa5a15a
 
     # =========================
     # GRID CONVERSION
@@ -86,7 +67,6 @@ class TileMap:
     # INPUT
     # =========================
     def handle_click(self, pos):
-<<<<<<< HEAD
 
         # -------------------------
         # PLACE TOWER
@@ -126,32 +106,6 @@ class TileMap:
         if self.show_menu:
             box = self.boxes[self.selected_box_index]
 
-=======
-        # Kapag may hawak nang kulay (ready na i-place ang tower)
-        if self.holding_color != None:
-            box = self.boxes[self.selected_box_index]
-            
-            # Check kung nasa loob ng valid placement row
-            if pos[1] >= box.top and pos[1] <= box.bottom:
-                if pos[0] > box.right and pos[0] <= 500:
-                    
-                    # Instantiate ang tamang Tower class base sa hawak na kulay
-                    t_x, t_y = pos[0], pos[1] # Center position para sa tower
-                    
-                    if self.holding_color == (255, 0, 0):
-                        self.placed_towers.append(RedTower(t_x, t_y))
-                    elif self.holding_color == (0, 255, 0):
-                        self.placed_towers.append(GreenTower(t_x, t_y))
-                    elif self.holding_color == (0, 0, 255):
-                        self.placed_towers.append(BlueTower(t_x, t_y))
-            
-            self.holding_color = None
-            return
-
-        # Kapag naka-open ang kulay na menu
-        if self.show_menu == True:
-            box = self.boxes[self.selected_box_index]
->>>>>>> f0012c61fae2664127376c9a33f5a3615fa5a15a
             for i in range(len(self.colors)):
                 menu_btn = pygame.Rect(box.right + 10 + (i * 45), box.top + 15, 35, 35)
 
@@ -161,17 +115,11 @@ class TileMap:
             self.show_menu = False
             return
 
-<<<<<<< HEAD
         # -------------------------
         # SELECT UI BOX
         # -------------------------
         for i, box in enumerate(self.boxes):
             if box.collidepoint(pos):
-=======
-        # Kapag kinlick ang isa sa mga gray boxes
-        for i in range(len(self.boxes)):
-            if self.boxes[i].collidepoint(pos):
->>>>>>> f0012c61fae2664127376c9a33f5a3615fa5a15a
                 self.selected_box_index = i
                 self.show_menu = True
 
@@ -207,7 +155,6 @@ class TileMap:
         # color menu
         if self.show_menu:
             box = self.boxes[self.selected_box_index]
-<<<<<<< HEAD
 
             for i, col in enumerate(self.colors):
                 pygame.draw.rect(
@@ -234,16 +181,3 @@ class TileMap:
                      self.cell_size, self.cell_size),
                     2
                 )
-=======
-            for i in range(len(self.colors)): 
-                pygame.draw.rect(screen, self.colors[i], (box.right + 10 + (i*45), box.top + 15, 35, 35))
-
-        # Tatawagin na natin yung built-in draw() function ng mga Towers
-        for tower in self.placed_towers:
-            tower.draw(screen)
-
-        # Preview box kapag hawak ng mouse ang tower bago ilagay
-        if self.holding_color != None:
-            m_pos = pygame.mouse.get_pos()
-            pygame.draw.rect(screen, self.holding_color, (m_pos[0]-20, m_pos[1]-20, 40, 40), 2)
->>>>>>> f0012c61fae2664127376c9a33f5a3615fa5a15a
