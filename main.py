@@ -16,7 +16,7 @@ class Game:
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("Arial", 40)
         self.running = True
-    
+
     def start_menu(self):
         while True:
 
@@ -61,7 +61,6 @@ class Game:
         wall = Wall()
         projectiles = []
         tower_projectiles = []
-
 
         while True:
             self.screen.fill((40, 40, 40))
@@ -109,7 +108,19 @@ class Game:
                     # Check if projectile is close to target
                     dist = math.hypot(tower_proj.x - tower_proj.target.pos_x, tower_proj.y - tower_proj.target.pos_y)
                     if dist < tower_proj.radius + 15:
-                        tower_proj.target.health -= tower_proj.damage
+                        # Handle splash damage for bazooka
+                        if tower_proj.projectile_type == "bazooka" and not tower_proj.has_exploded:
+                            # Apply splash damage to all enemies in range
+                            explosion_x, explosion_y = tower_proj.target.pos_x, tower_proj.target.pos_y
+                            for enemy in all_enemies:
+                                if hasattr(enemy, 'pos_x') and hasattr(enemy, 'pos_y'):
+                                    splash_dist = math.hypot(enemy.pos_x - explosion_x, enemy.pos_y - explosion_y)
+                                    if splash_dist <= tower_proj.splash_radius:
+                                        enemy.health -= tower_proj.damage
+                            tower_proj.has_exploded = True
+                        else:
+                            # Normal damage for other projectiles
+                            tower_proj.target.health -= tower_proj.damage
                         tower_proj.active = False
 
             # draw
@@ -182,6 +193,6 @@ class Game:
 
             pygame.display.update()
             self.clock.tick(60)
-            
+
 if __name__ == "__main__":
     Game().start_menu()

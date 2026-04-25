@@ -54,7 +54,7 @@ class WaveManager:
 
     def spawn_enemy(self):
         x = width + 100
-        y = random.randint(0, height - 100)
+        y = random.randint(120, height - 60)
 
         enemy_number = random.randint(0, 100)
 

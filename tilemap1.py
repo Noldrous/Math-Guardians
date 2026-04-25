@@ -9,10 +9,10 @@ class TileMap:
         self.cell_size = 120  # big enough for towers
 
         self.cols = 3
-        self.rows = 6
+        self.rows = 5
 
         self.offset_x = 220 # LEFT SIDE BUILD ZONE
-        self.offset_y = 0
+        self.offset_y = 120
 
         self.grid_width = self.cols * self.cell_size
         self.grid_height = self.rows * self.cell_size
@@ -40,10 +40,11 @@ class TileMap:
     def get_grid_pos(self, pos):
         x, y = pos
 
-        # apply offset
+        # apply offsets
         x -= self.offset_x
+        y -= self.offset_y
 
-        if x < 0:
+        if x < 0 or y < 0:
             return None
 
         col = x // self.cell_size
@@ -59,7 +60,7 @@ class TileMap:
         col, row = grid_pos
 
         x = self.offset_x + col * self.cell_size + self.cell_size // 2
-        y = row * self.cell_size + self.cell_size // 2
+        y = self.offset_y + row * self.cell_size + self.cell_size // 2
 
         return x, y
 
@@ -132,13 +133,18 @@ class TileMap:
         pygame.draw.rect(
             screen,
             (25, 25, 25),
-            (self.offset_x, 0, self.grid_width, self.grid_height)
+            (self.offset_x, self.offset_y, self.grid_width, self.grid_height)
         )
 
         # vertical lines
         for c in range(self.cols + 1):
             x = self.offset_x + c * self.cell_size
-            pygame.draw.line(screen, (60, 60, 60), (x, 0), (x, self.grid_height))
+            pygame.draw.line(
+                screen,
+                (60, 60, 60),
+                (x, self.offset_y),
+                (x, self.offset_y + self.grid_height)
+            )
 
         # horizontal lines
         for r in range(self.rows + 1):

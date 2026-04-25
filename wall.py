@@ -3,9 +3,9 @@ from setting import *
 class Wall:
     def __init__(self):
         self.width = 120
-        self.height = height
+        self.height = 600
         self.x = width // 2 - self.width // 2
-        self.y = height // 2 - self.height // 2
+        self.y = 120
 
         self.max_health = 1000
         self.health = self.max_health
