@@ -1,4 +1,5 @@
 from setting import *
+import spritesheet
 
 def distance(a, b):
     return math.sqrt((a.pos_x - b.pos_x)**2 + (a.pos_y - b.pos_y)**2)
@@ -35,6 +36,7 @@ class Enemy:
         self.health = health
         self.pos_x = width + 200
         self.pos_y = y
+        self.pos = pygame.Vector2(self.pos_x, self.pos_y)
 
         self.speed = speed
         self.damage = damage
@@ -64,12 +66,45 @@ class RedEnemy(Enemy):
         self.state = "moving"
         self.cooldown = 0
         self.color = (255, 0, 0)  # Red
+        self.sprite_sheet_image = load_image_alpha("enemies/redguy.png")
+        self.sprite_sheet = spritesheet.SpriteSheet(self.sprite_sheet_image)
+        self.animations = {
+            "moving":  [],
+            "punch": []
+        }
+        self.animation_cooldowns = {
+            "moving": 150,
+            "punch": 100
+        }
+        
+
+        self.last_update = pygame.time.get_ticks()
+        self.frame = 0
+        for x in range(4):
+            self.animations["moving"].append(self.sprite_sheet.get_image(x, 0, 357, 446, 0.15))
+        for x in range(3):
+            self.animations["punch"].append(self.sprite_sheet.get_image(x, 1, 357, 446, 0.15))
+
+        self.animation_list = self.animations[self.state]
+        self.animation_cooldown = self.animation_cooldowns[self.state]
+
 
     def draw(self, screen):
-        pygame.draw.rect(screen, "RED", (self.pos_x, self.pos_y, 20, 20))
+        flip_image = pygame.transform.flip(self.animation_list[self.frame], True, False)
+        rect = flip_image.get_rect(center=self.pos)
+        screen.blit(flip_image, rect.topleft)
 
     def update(self, wall):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_update >= self.animation_cooldown:
+            self.frame += 1
+            self.last_update = current_time
+            if self.frame >= len(self.animation_list):
+                self.frame = 0
 
+        self.animation_list = self.animations[self.state]
+        self.animation_cooldown = self.animation_cooldowns[self.state]
+        
         if self.state == "moving":
             self.pos_x -= self.speed * self.speed_multiplier
 
@@ -85,6 +120,10 @@ class RedEnemy(Enemy):
         if self.cooldown > 0:
             self.cooldown -= 1
 
+
+        self.pos.x = self.pos_x
+        self.pos.y = self.pos_y
+
 class BlueEnemy(Enemy):
     def __init__(self, y, number):
         super().__init__(health=80, speed=1.5, damage=8, y=y)
@@ -92,16 +131,51 @@ class BlueEnemy(Enemy):
         self.cooldown = 0
         self.state = "moving"
         self.color = (0, 0, 255)  # Blue
+        self.sprite_sheet_image = load_image_alpha("enemies/blueguy.png")
+        self.sprite_sheet = spritesheet.SpriteSheet(self.sprite_sheet_image)
+        self.animations = {
+            "moving":  [],
+            "shoot": []
+        }
+        self.animation_cooldowns = {
+            "moving": 150,
+            "shoot": 250
+        }
+        
+
+        self.last_update = pygame.time.get_ticks()
+        self.frame = 0
+        for x in range(4):
+            self.animations["moving"].append(self.sprite_sheet.get_image(x, 0, 448, 560, 0.12))
+        for x in range(3):
+            self.animations["shoot"].append(self.sprite_sheet.get_image(x, 1, 448, 560, 0.12))
+        
+
+        self.animation_list = self.animations[self.state]
+        self.animation_cooldown = self.animation_cooldowns[self.state]
 
     def draw(self, screen):
-        pygame.draw.rect(screen, "BLUE", (self.pos_x, self.pos_y, 20, 20))
+        flip_image = pygame.transform.flip(self.animation_list[self.frame], True, False)
+        rect = flip_image.get_rect(center=self.pos)
+        screen.blit(flip_image, rect.topleft)
 
     def update(self, wall, projectiles):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_update >= self.animation_cooldown:
+            self.frame += 1
+            self.last_update = current_time
+            if self.frame >= len(self.animation_list):
+                self.frame = 0
+
+        self.animation_list = self.animations[self.state]
+        self.animation_cooldown = self.animation_cooldowns[self.state]
+
         if self.state == "moving":
             self.pos_x -= self.speed * self.speed_multiplier
 
             if self.pos_x - wall.x < self.attack_range:
                 self.state = "shoot"
+                self.frame = 0
 
         elif self.state == "shoot":
             if self.cooldown <= 0:
@@ -112,12 +186,14 @@ class BlueEnemy(Enemy):
                     speed=6,
                     damage=self.damage * self.damage_multiplier,
                 )
+                self.cooldown = 45
                 projectiles.append(proj)
-
-                self.cooldown = 60  # fire rate
 
         if self.cooldown > 0:
             self.cooldown -= 1
+
+        self.pos.x = self.pos_x
+        self.pos.y = self.pos_y
     
 class GreenEnemy(Enemy):
     def __init__(self, y, number):
@@ -132,10 +208,36 @@ class GreenEnemy(Enemy):
         self.cooldown = 0
         self.color = (0, 255, 0)  # Green
 
+        self.sprite_sheet_image = load_image_alpha("enemies/greenguy.png")
+        self.sprite_sheet = spritesheet.SpriteSheet(self.sprite_sheet_image)
+        self.animations = {
+            "moving":  [],
+        }
+        self.animation_cooldowns = {
+            "moving": 150,
+        }
+        
+
+        self.last_update = pygame.time.get_ticks()
+        self.frame = 0
+        for x in range(3):
+            self.animations["moving"].append(self.sprite_sheet.get_image(x, 0, 357, 446, 0.14))
+
+        self.animation_list = self.animations[self.state]
+        self.animation_cooldown = self.animation_cooldowns[self.state]
+
     def draw(self, screen):
-        pygame.draw.rect(screen, "GREEN", (self.pos_x, self.pos_y, 20, 20))
+        flip_image = pygame.transform.flip(self.animation_list[self.frame], True, False)
+        rect = flip_image.get_rect(center=self.pos)
+        screen.blit(flip_image, rect.topleft)
 
     def update(self, wall, enemies):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_update >= self.animation_cooldown:
+            self.frame += 1
+            self.last_update = current_time
+            if self.frame >= len(self.animation_list):
+                self.frame = 0
 
         distance_to_wall = self.pos_x - (wall.x + wall.width)
 
@@ -181,3 +283,6 @@ class GreenEnemy(Enemy):
                 for enemy in enemies
             ):
                 self.state = "healing"
+
+        self.pos.x = self.pos_x
+        self.pos.y = self.pos_y

@@ -1,5 +1,6 @@
 import pygame
 from towers import *
+from assets import *
 
 class TileMap:
     def __init__(self):
@@ -128,30 +129,31 @@ class TileMap:
     # DRAW
     # =========================
     def draw(self, screen):
-
-        # grid background (shifted RIGHT by offset_x)
+        grid_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
         pygame.draw.rect(
-            screen,
-            (25, 25, 25),
+            grid_surface,
+            (25, 25, 25, 100), 
             (self.offset_x, self.offset_y, self.grid_width, self.grid_height)
         )
-
-        # vertical lines
         for c in range(self.cols + 1):
             x = self.offset_x + c * self.cell_size
             pygame.draw.line(
-                screen,
-                (60, 60, 60),
+                grid_surface,
+                (60, 60, 60, 150),
                 (x, self.offset_y),
                 (x, self.offset_y + self.grid_height)
             )
 
-        # horizontal lines
         for r in range(self.rows + 1):
-            y = r * self.cell_size
-            pygame.draw.line(screen, (60, 60, 60),
-                            (self.offset_x, y),
-                            (self.offset_x + self.grid_width, y))
+            y = self.offset_y + r * self.cell_size
+            pygame.draw.line(
+                grid_surface, 
+                (60, 60, 60, 150),
+                (self.offset_x, y),
+                (self.offset_x + self.grid_width, y)
+            )
+
+        screen.blit(grid_surface, (0, 0))
 
         # UI boxes
         for box in self.boxes:
@@ -186,4 +188,4 @@ class TileMap:
                     (x - self.cell_size//2, y - self.cell_size//2,
                      self.cell_size, self.cell_size),
                     2
-                )
+                )#
