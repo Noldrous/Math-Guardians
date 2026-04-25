@@ -9,7 +9,8 @@ class Projectile:
         self.pos = pygame.Vector2(x, y)
         self.speed = speed
         self.damage = damage
-        self.radius = 5
+        self.radius = 6
+        self.is_laser = False
 
     def update(self, wall):
         self.pos.x -= self.speed
@@ -24,8 +25,41 @@ class Projectile:
 
         return self.pos.x > 0
 
-    def draw(self, screen):
-        pygame.draw.circle(screen, "cyan", (int(self.pos.x), int(self.pos.y)), self.radius)
+    def draw_laser(self, screen):
+        if not self.is_laser:
+            # Regular projectile (shouldn't reach here)
+            pygame.draw.circle(screen, "yellow", (int(self.pos.x), int(self.pos.y)), self.radius)
+        else:
+            # Laser beam
+            pygame.draw.circle(screen, "yellow", (int(self.pos.x), int(self.pos.y)), self.radius)
+
+class Laser(Projectile):
+    def __init__(self, x, y, damage, wall):
+        super().__init__(x, y, speed=0, damage=damage)
+        self.is_laser = True
+        self.laser_length = 500
+        self.wall = wall
+        self.duration = 12  # frames
+        self.age = 0
+
+    def update(self, wall):
+        self.age += 1
+        # Laser damages wall if beam intersects with wall's y-range
+        if wall.y < self.pos.y < wall.y + wall.height:
+            wall.take_damage(self.damage)
+
+        # Destroy laser after duration
+        return self.age < self.duration
+
+    def draw_laser(self, screen):
+        # Draw laser beam from source to wall
+        end_x = self.wall.x + self.wall.width
+        
+        # Outer glow (cyan)
+        pygame.draw.line(screen, "cyan", (int(self.pos.x), int(self.pos.y)), (int(end_x), int(self.pos.y)), 8)
+        
+        # Inner core (white)
+        pygame.draw.line(screen, "white", (int(self.pos.x), int(self.pos.y)), (int(end_x), int(self.pos.y)), 4)
 
 class Enemy:
     def __init__(self, health, speed, damage, y):
@@ -96,21 +130,16 @@ class RedEnemy(Enemy):
         screen.blit(flip_image, rect.topleft)
 
     def update(self, wall):
-        current_time = pygame.time.get_ticks()
-        if current_time - self.last_update >= self.animation_cooldown:
-            self.frame += 1
-            self.last_update = current_time
-            if self.frame >= len(self.animation_list):
-                self.frame = 0
+        previous_state = self.state
 
-        self.animation_list = self.animations[self.state]
-        self.animation_cooldown = self.animation_cooldowns[self.state]
-        
+        # STATE LOGIC
         if self.state == "moving":
+
             self.pos_x -= self.speed * self.speed_multiplier
 
             if self.pos_x <= wall.x + wall.width:
                 self.state = "punch"
+
 
         elif self.state == "punch":
 
@@ -118,6 +147,27 @@ class RedEnemy(Enemy):
                 wall.take_damage(self.damage * self.damage_multiplier)
                 self.cooldown = 45
 
+        # RESET FRAME IF STATE CHANGED
+        if self.state != previous_state:
+            self.frame = 0
+
+        # ANIMATION SETUP
+        self.animation_list = self.animations[self.state]
+        self.animation_cooldown = self.animation_cooldowns[self.state]
+        if self.frame >= len(self.animation_list):
+            self.frame = 0
+
+        # ANIMATION UPDATE
+        current_time = pygame.time.get_ticks()
+
+        if current_time - self.last_update >= self.animation_cooldown:
+            self.frame += 1
+            self.last_update = current_time
+
+            if self.frame >= len(self.animation_list):
+                self.frame = 0
+
+        # COOLDOWN UPDATE
         if self.cooldown > 0:
             self.cooldown -= 1
 
@@ -127,8 +177,8 @@ class RedEnemy(Enemy):
 
 class BlueEnemy(Enemy):
     def __init__(self, y, number):
-        super().__init__(health=80, speed=1.5, damage=8, y=y)
-        self.attack_range = random.randint(250, 400)
+        super().__init__(health=80, speed=1.5, damage=0.5, y=y)
+        self.attack_range = random.randint(250,350)
         self.cooldown = 0
         self.state = "moving"
         self.type = "attacker"
@@ -144,14 +194,12 @@ class BlueEnemy(Enemy):
             "shoot": 250
         }
         
-
         self.last_update = pygame.time.get_ticks()
         self.frame = 0
         for x in range(4):
             self.animations["moving"].append(self.sprite_sheet.get_image(x, 0, 448, 560, 0.12))
         for x in range(3):
             self.animations["shoot"].append(self.sprite_sheet.get_image(x, 1, 448, 560, 0.12))
-        
 
         self.animation_list = self.animations[self.state]
         self.animation_cooldown = self.animation_cooldowns[self.state]
@@ -162,37 +210,55 @@ class BlueEnemy(Enemy):
         screen.blit(flip_image, rect.topleft)
 
     def update(self, wall, projectiles):
+
+        distance_to_wall = self.pos_x - (wall.x + wall.width)
+
+        # STATE DECISION
+        if distance_to_wall <= self.attack_range:
+            self.state = "shoot"
+        else:
+            self.state = "moving"
+
+        # ANIMATION SELECTION
+        self.animation_list = self.animations[self.state]
+        self.animation_cooldown = self.animation_cooldowns[self.state]
+        if self.frame >= len(self.animation_list):
+            self.frame = 0
+
+        # ANIMATION UPDATE
         current_time = pygame.time.get_ticks()
+
         if current_time - self.last_update >= self.animation_cooldown:
             self.frame += 1
             self.last_update = current_time
+
             if self.frame >= len(self.animation_list):
                 self.frame = 0
 
-        self.animation_list = self.animations[self.state]
-        self.animation_cooldown = self.animation_cooldowns[self.state]
-
+        # BEHAVIOR
         if self.state == "moving":
+
             self.pos_x -= self.speed * self.speed_multiplier
 
-            if self.pos_x - wall.x < self.attack_range:
-                self.state = "shoot"
-                self.frame = 0
 
         elif self.state == "shoot":
+
             if self.cooldown <= 0:
-                # shoot projectile
-                proj = Projectile(
+
+                laser = Laser(
                     self.pos_x,
                     self.pos_y + 10,
-                    speed=6,
                     damage=self.damage * self.damage_multiplier,
+                    wall=wall,
                 )
-                self.cooldown = 45
-                projectiles.append(proj)
 
-        if self.cooldown > 0:
-            self.cooldown -= 1
+                projectiles.append(laser)
+
+                self.cooldown = 45
+
+            else:
+                self.cooldown -= 1
+
 
         self.pos.x = self.pos_x
         self.pos.y = self.pos_y
@@ -205,7 +271,7 @@ class GreenEnemy(Enemy):
         self.type = "healer"
 
         self.heal_amount = 5
-        self.heal_range = 300
+        self.heal_range = 100
 
         self.attack_range = random.randint(40, 80)
         self.cooldown = 0
@@ -243,41 +309,58 @@ class GreenEnemy(Enemy):
         screen.blit(flip_image, rect.topleft)
 
     def update(self, wall, enemies):
+
+        distance_to_wall = self.pos_x - (wall.x + wall.width)
+
+        # STATE DECISION
+        previous_state = self.state
+
+        if distance_to_wall <= self.attack_range:
+            self.state = "attacking"
+
+        elif any(
+            enemy != self and enemy.type != "healer" and distance(self, enemy) < self.heal_range
+            for enemy in enemies
+        ):
+            self.state = "healing"
+
+        else:
+            self.state = "moving"
+
+
+        # reset animation if state changed
+        if self.state != previous_state:
+            self.frame = 0
+
+        # ANIMATION SETUP
         self.animation_list = self.animations[self.state]
         self.animation_cooldown = self.animation_cooldowns[self.state]
 
+        if self.frame >= len(self.animation_list):
+            self.frame = 0
+
+        # ANIMATION UPDATE
         current_time = pygame.time.get_ticks()
+
         if current_time - self.last_update >= self.animation_cooldown:
             self.frame += 1
             self.last_update = current_time
+
             if self.frame >= len(self.animation_list):
                 self.frame = 0
-                
-        distance_to_wall = self.pos_x - (wall.x + wall.width)
 
-        if any(
-            enemy != self and distance(self, enemy) < self.heal_range
-            for enemy in enemies
-        ):
-
-            self.state = "healing"
-        else:
-
-            self.state = "moving"
-
-        if distance_to_wall <= self.attack_range:
-
-            self.state = "attacking"
-
+        # BEHAVIOR
         if self.state == "moving":
 
             self.pos_x -= self.speed * self.speed_multiplier
 
+
         elif self.state == "healing":
 
             if self.cooldown <= 0:
+
                 for enemy in enemies:
-                    if enemy != self and enemy.color != (0, 255, 0)  and distance(self, enemy) < self.heal_range:
+                    if enemy != self and enemy.type != "healer" and distance(self, enemy) < self.heal_range:
                         enemy.health = min(
                             enemy.health + self.heal_amount,
                             enemy.max_health
@@ -287,19 +370,15 @@ class GreenEnemy(Enemy):
             else:
                 self.cooldown -= 1
 
+
         elif self.state == "attacking":
 
             if self.cooldown <= 0:
                 wall.take_damage(self.damage * self.damage_multiplier)
-                self.cooldown = 90  # attack speed
+                self.cooldown = 90
             else:
                 self.cooldown -= 1
 
-            if any(
-                enemy != self and distance(self, enemy) < self.heal_range
-                for enemy in enemies
-            ):
-                self.state = "healing"
 
         self.pos.x = self.pos_x
         self.pos.y = self.pos_y
