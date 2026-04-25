@@ -19,7 +19,7 @@ class Game:
         self.announce_font = pygame.font.SysFont("Arial", 30, bold=True)
         self.running = True
         self.assets = {
-            "game_background": load_image_alpha("game_world/background.webp"),
+            "game_background": load_image_alpha("game_world/background1.png"),
             "wall": load_image_alpha("game_world/wall.webp")
         }
     
