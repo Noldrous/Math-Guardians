@@ -20,44 +20,92 @@ class Game:
         self.running = True
         self.assets = {
             "game_background": load_image_alpha("game_world/background.webp"),
-            "wall": load_image_alpha("game_world/wall.webp")
-        }
+            "wall": load_image_alpha("game_world/wall.webp"),
+            "menu_background": load_image_alpha("menu/background.png"),
+            "title": load_image_alpha("menu/title.png"),
+            "play_button": load_image_alpha("menu/play_button.png"),
+            "instruction_button": load_image_alpha("menu/instructions_button.png"),
+            "instruction": load_image_alpha("menu/instruction.png"),
+            "exit_button": load_image_alpha("menu/exit_button.png")
+        }        
+        self.show_popup = False
     
+    def draw_button(self, img, rect):
+        mouse = pygame.mouse.get_pos()
+        offset = 5 if rect.collidepoint(mouse) else 0
+        self.screen.blit(img, (rect.x, rect.y - offset))
+
+    # ---------------- MENU ----------------
     def start_menu(self):
+        play_button = pygame.transform.scale(self.assets["play_button"], (300, 100))
+        instruction_button = pygame.transform.scale(self.assets["instruction_button"], (300, 100))
+        title = pygame.transform.scale(self.assets["title"], (600, 300))
+        popup = pygame.transform.scale(self.assets["instruction"], (600, 660))
+        exit_button = pygame.transform.scale(self.assets["exit_button"], (100, 50))
+
+        play_rect = play_button.get_rect(center=(self.width // 2, self.height - 350))
+        instruction_rect = instruction_button .get_rect(center=(self.width // 2, self.height - 220))
+        title_rect = title.get_rect(center=(self.width // 2, 150))
+        popup_rect = popup.get_rect(center=(self.width // 2, self.height // 2))
+
+        bg_x = 0
+        bg_speed = 0.5
+
         while True:
 
-            self.screen.fill((40, 40, 40))
-            mouse = pygame.mouse.get_pos()
+            # PARALLAX BACKGROUND
+            bg_x -= bg_speed
+            if bg_x <= -self.width:
+                bg_x = 0
 
-            play_button = pygame.Rect(width//2 - 70, height - 400, 140, 50)
-            quit_button = pygame.Rect(width //2 - 70, height - 325, 140, 50)
+            self.screen.blit(self.assets["menu_background"], (bg_x, 0))
+            self.screen.blit(self.assets["menu_background"], (bg_x + self.width, 0))
 
-            pygame.draw.rect(self.screen, "skyblue" if play_button.collidepoint(mouse) else "darkgray", play_button)
-            pygame.draw.rect(self.screen, "skyblue" if quit_button.collidepoint(mouse) else "darkgray", quit_button)
+            # UI
+            self.screen.blit(title, title_rect)
+            self.draw_button(play_button, play_rect)
+            self.draw_button(instruction_button, instruction_rect)
 
-            play_text = self.font.render("Play", True, "white")
-            quit_text = self.font.render("Quit", True, "white")
+            # POPUP
+            if self.show_popup:
+                overlay = pygame.Surface((self.width, self.height))
+                overlay.set_alpha(160)
+                overlay.fill((0, 0, 0))
+                self.screen.blit(overlay, (0, 0))
 
-            self.screen.blit(play_text, (width//2 - 70, height - 400))
-            self.screen.blit(quit_text, (width //2 - 70, height - 325))
+                self.screen.blit(popup, popup_rect)
 
+                self.close_rect = exit_button.get_rect(
+                    topright=popup_rect.topright
+                )
+                self.close_rect.x -= 20
+                self.close_rect.y += 20
+
+                self.screen.blit(exit_button, self.close_rect)
+
+            # EVENTS
             for event in pygame.event.get():
-
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
 
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    mouse_buttons = pygame.mouse.get_pressed()
-                    if play_button.collidepoint(mouse) and mouse_buttons[0]:
-                        self.game()
+                    if event.button == 1:
 
-                    if quit_button.collidepoint(mouse) and mouse_buttons[0]:
-                        pygame.quit()
-                        sys.exit()
+                        # CLOSE POPUP
+                        if self.show_popup and self.close_rect.collidepoint(event.pos):
+                            self.show_popup = False
+
+                        # OPEN POPUP
+                        elif instruction_rect.collidepoint(event.pos):
+                            self.show_popup = True
+
+                        # START GAME
+                        elif play_rect.collidepoint(event.pos) and not self.show_popup:
+                            self.game()
 
             pygame.display.update()
-            fps = self.clock.tick(60)
+            self.clock.tick(60)
 
     def game(self):
         level_map = TileMap()

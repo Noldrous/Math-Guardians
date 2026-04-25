@@ -200,7 +200,7 @@ class BaseTower(ABC):
         # Fire 3 machine gun rounds with slight angle spread
         if self.current_ammo <= 0:
             return
-        
+
         dx = self.target.pos_x - self.x
         dy = self.target.pos_y - self.y
         base_angle = math.atan2(dy, dx)
@@ -230,11 +230,11 @@ class BaseTower(ABC):
         # Fire one bazooka round with explosion radius
         if self.current_ammo <= 0:
             return
-        
+
         # You can customize splash_radius here (default is 150)
         proj = BazookaRound(self.x, self.y, self.target, self.damage, splash_radius=150)
         projectiles.append(proj)
-        
+
         self.current_ammo -= 1  # Decrement ammo after firing
         
     def refill_ammo(self):
