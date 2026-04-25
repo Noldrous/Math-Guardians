@@ -149,7 +149,7 @@ class BaseTower(ABC):
             self.shoot(projectiles)
             self.cooldown = self.fire_rate
             
-    def find_target(self, enemies: List) -> Optional: # FINDS CLOSEST VALID TARGET 
+    def find_target(self, enemies: List): # FINDS CLOSEST VALID TARGET 
         # Find closest valid target in range
         closest_enemy = None
         closest_dist = float('inf')
@@ -190,7 +190,7 @@ class BaseTower(ABC):
         dy = self.target.pos_y - self.y
         base_angle = math.atan2(dy, dx)
         
-        for angle_offset in [-0.087, 0, 0.087]:  # ±5 degrees in radians
+        for angle_offset in [-0.087, 0, 0.087]:  # Â±5 degrees in radians
             angle = base_angle + angle_offset
             offset_dist = 5
             proj_x = self.x + math.cos(angle) * offset_dist
@@ -347,4 +347,4 @@ class GreenTower(BaseTower):
 
     def target_color(self) -> Tuple[int, int, int]:
         # Return the color of valid targets for this tower
-        return self.VALID_TARGET
+        return self.VALID_TARGET #
