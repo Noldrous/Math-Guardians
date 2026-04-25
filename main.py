@@ -4,6 +4,7 @@ from waves import *
 from wall import *
 from towers import *
 from tilemap1 import TileMap
+from upgrade import UpgradeManager
 
 class Game:
     def __init__(self):
@@ -70,6 +71,11 @@ class Game:
         game_background = self.assets["game_background"]
         game_background = pygame.transform.scale(game_background, (self.width, 725))
 
+        coins = 100 
+        upgrade_manager = UpgradeManager(self.height)
+
+        coin_font = pygame.font.SysFont("Arial", 25, bold=True)
+
         while True:
             dt = self.clock.tick(60) / 1000
 
@@ -83,6 +89,7 @@ class Game:
                         # Ipapasa natin ang click sa TileMap
                         level_map.handle_click(pygame.mouse.get_pos())
 
+                        coins = upgrade_manager.handle_click(pygame.mouse.get_pos(), coins, level_map.placed_towers)
             wave_manager.update(dt)
             all_enemies = wave_manager.all_enemies
 
@@ -157,6 +164,7 @@ class Game:
             # removers
             for enemy in all_enemies[:]:
                 if enemy.health <= 0:
+                    coins += 15  # Magdadagdag ng 15 coins
                     wave_manager.remove_enemy(enemy)
 
             for proj in projectiles[:]:
@@ -167,6 +175,12 @@ class Game:
             for tower_proj in tower_projectiles[:]:
                 if not tower_proj.active or tower_proj.target is None or tower_proj.target.health <= 0:
                     tower_projectiles.remove(tower_proj)
+
+            upgrade_manager.draw(self.screen)
+            
+            #Current Coins
+            coin_text = coin_font.render(f"Coins: {coins}", True, (255, 215, 0))
+            self.screen.blit(coin_text, (1150, 20))
 
             # GAME OVER CHECK
             if wall.health <= 0:
