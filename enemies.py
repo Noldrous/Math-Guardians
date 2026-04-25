@@ -9,7 +9,8 @@ class Projectile:
         self.pos = pygame.Vector2(x, y)
         self.speed = speed
         self.damage = damage
-        self.radius = 5
+        self.radius = 6
+        self.is_laser = False
 
     def update(self, wall):
         self.pos.x -= self.speed
@@ -24,8 +25,41 @@ class Projectile:
 
         return self.pos.x > 0
 
+    def draw_laser(self, screen):
+        if not self.is_laser:
+            # Regular projectile (shouldn't reach here)
+            pygame.draw.circle(screen, "yellow", (int(self.pos.x), int(self.pos.y)), self.radius)
+        else:
+            # Laser beam
+            pygame.draw.circle(screen, "yellow", (int(self.pos.x), int(self.pos.y)), self.radius)
+
+class Laser(Projectile):
+    def __init__(self, x, y, damage, wall):
+        super().__init__(x, y, speed=0, damage=damage)
+        self.is_laser = True
+        self.laser_length = 500
+        self.wall = wall
+        self.duration = 12  # frames
+        self.age = 0
+
+    def update(self, wall):
+        self.age += 1
+        # Laser damages wall if beam intersects with wall's y-range
+        if wall.y < self.pos.y < wall.y + wall.height:
+            wall.take_damage(self.damage)
+
+        # Destroy laser after duration
+        return self.age < self.duration
+
     def draw(self, screen):
-        pygame.draw.circle(screen, "cyan", (int(self.pos.x), int(self.pos.y)), self.radius)
+        # Draw laser beam from source to wall
+        end_x = self.wall.x + self.wall.width
+        
+        # Outer glow (cyan)
+        pygame.draw.line(screen, "cyan", (int(self.pos.x), int(self.pos.y)), (int(end_x), int(self.pos.y)), 8)
+        
+        # Inner core (white)
+        pygame.draw.line(screen, "white", (int(self.pos.x), int(self.pos.y)), (int(end_x), int(self.pos.y)), 4)
 
 class Enemy:
     def __init__(self, health, speed, damage, y):
@@ -143,7 +177,7 @@ class RedEnemy(Enemy):
 
 class BlueEnemy(Enemy):
     def __init__(self, y, number):
-        super().__init__(health=80, speed=1.5, damage=8, y=y)
+        super().__init__(health=80, speed=1.5, damage=0.5, y=y)
         self.attack_range = random.randint(250,350)
         self.cooldown = 0
         self.state = "moving"
@@ -166,7 +200,6 @@ class BlueEnemy(Enemy):
             self.animations["moving"].append(self.sprite_sheet.get_image(x, 0, 448, 560, 0.12))
         for x in range(3):
             self.animations["shoot"].append(self.sprite_sheet.get_image(x, 1, 448, 560, 0.12))
-        
 
         self.animation_list = self.animations[self.state]
         self.animation_cooldown = self.animation_cooldowns[self.state]
@@ -212,14 +245,14 @@ class BlueEnemy(Enemy):
 
             if self.cooldown <= 0:
 
-                proj = Projectile(
+                laser = Laser(
                     self.pos_x,
                     self.pos_y + 10,
-                    speed=6,
                     damage=self.damage * self.damage_multiplier,
+                    wall=wall,
                 )
 
-                projectiles.append(proj)
+                projectiles.append(laser)
 
                 self.cooldown = 45
 
