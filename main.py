@@ -37,9 +37,9 @@ class Game:
 
     # ---------------- MENU ----------------
     def start_menu(self):
-        play_button = pygame.transform.scale(self.assets["play_button"], (300, 100))
-        instruction_button = pygame.transform.scale(self.assets["instruction_button"], (300, 100))
-        title = pygame.transform.scale(self.assets["title"], (600, 300))
+        play_button = pygame.transform.scale(self.assets["play_button"], (300, 150))
+        instruction_button = pygame.transform.scale(self.assets["instruction_button"], (300, 150))
+        title = pygame.transform.scale(self.assets["title"], (950, 600))
         popup = pygame.transform.scale(self.assets["instruction"], (600, 660))
         exit_button = pygame.transform.scale(self.assets["exit_button"], (100, 50))
 

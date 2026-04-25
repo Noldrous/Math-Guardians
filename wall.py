@@ -10,7 +10,7 @@ class Wall:
         self.max_health = 1000
         self.health = self.max_health
 
-        self.image = load_image_alpha("game_world/wall.webp")
+        self.image = load_image_alpha("game_world/wall3.png")
         self.image = pygame.transform.scale(self.image, (self.width, self.height))
 
 
