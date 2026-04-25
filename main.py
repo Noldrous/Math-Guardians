@@ -17,7 +17,7 @@ class Game:
         self.font = pygame.font.SysFont("Arial", 40)
         self.running = True
 
-        self.bg_image = pygame.image.load("assets/img/blocks or background/background.webp").convert()
+        self.bg_image = pygame.image.load("assets/img/blocks or background/map.png").convert()
         self.bg_image = pygame.transform.scale(self.bg_image, (self.width, 725))
     
     def start_menu(self):
