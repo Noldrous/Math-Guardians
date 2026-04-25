@@ -105,9 +105,9 @@ class BaseTower(ABC):
     # Abstract base class for all towers
     # Gun type configs: {type: (damage, fire_rate, cost)}
     GUN_CONFIGS = {
-        "machinegun": {"damage": 5, "fire_rate": 8, "cost": 80, "rounds": 3},
-        "sniper": {"damage": 35, "fire_rate": 60, "cost": 120, "rounds": 1},
-        "bazooka": {"damage": 40, "fire_rate": 50, "cost": 150, "rounds": 1}
+        "machinegun": {"damage": 5, "fire_rate": 8, "cost": 80, "rounds": 3, "max_ammo": 10},
+        "sniper": {"damage": 35, "fire_rate": 60, "cost": 120, "rounds": 1, "max_ammo": 5},
+        "bazooka": {"damage": 40, "fire_rate": 50, "cost": 150, "rounds": 1, "max_ammo": 2}
     }
     
     def __init__(self, x: int, y: int, tower_color: Tuple[int, int, int], 
@@ -123,6 +123,8 @@ class BaseTower(ABC):
         self.fire_rate = gun_config["fire_rate"]
         self.cost = gun_config["cost"]
         self.rounds = gun_config["rounds"]
+        self.max_ammo = gun_config["max_ammo"]
+        self.current_ammo = self.max_ammo  # Start with full ammo
         
         self.range_radius = range_radius
         self.cooldown = 0
@@ -142,7 +144,8 @@ class BaseTower(ABC):
             self.cooldown -= 1
             return
             
-        if self.target and self.cooldown == 0:
+        # Only shoot if we have ammo and a target
+        if self.target and self.cooldown == 0 and self.current_ammo > 0:
             self.shoot(projectiles)
             self.cooldown = self.fire_rate
             
@@ -180,6 +183,9 @@ class BaseTower(ABC):
     
     def _shoot_machinegun(self, projectiles: List):
         # Fire 3 machine gun rounds with slight angle spread
+        if self.current_ammo <= 0:
+            return
+        
         dx = self.target.pos_x - self.x
         dy = self.target.pos_y - self.y
         base_angle = math.atan2(dy, dx)
@@ -192,17 +198,33 @@ class BaseTower(ABC):
             
             proj = MachineGunRound(proj_x, proj_y, self.target, self.damage)
             projectiles.append(proj)
+        
+        self.current_ammo -= 1  # Decrement ammo after firing
     
     def _shoot_sniper(self, projectiles: List):
         # Fire one sniper round with trailing effect
+        if self.current_ammo <= 0:
+            return
+        
         proj = SniperRound(self.x, self.y, self.target, self.damage)
         projectiles.append(proj)
+        
+        self.current_ammo -= 1  # Decrement ammo after firing
     
     def _shoot_bazooka(self, projectiles: List):
         # Fire one bazooka round with explosion radius
+        if self.current_ammo <= 0:
+            return
+        
         # You can customize splash_radius here (default is 150)
         proj = BazookaRound(self.x, self.y, self.target, self.damage, splash_radius=150)
         projectiles.append(proj)
+        
+        self.current_ammo -= 1  # Decrement ammo after firing
+        
+    def refill_ammo(self):
+        # Refill ammo to maximum (call this at wave start or after tower is placed)
+        self.current_ammo = self.max_ammo
         
     def draw_range(self, screen: pygame.Surface):
         # Draw attack range preview
@@ -244,6 +266,34 @@ class BaseTower(ABC):
         if self.target:
             pygame.draw.line(screen, (255, 255, 0), (self.x, self.y), 
                            (self.target.pos_x, self.target.pos_y), 2)
+        
+        # Draw ammo indicator
+        self._draw_ammo(screen)
+    
+    def _draw_ammo(self, screen: pygame.Surface):
+        # Draw ammo bar below the tower
+        bar_width = 30
+        bar_height = 4
+        bar_x = self.x - bar_width // 2
+        bar_y = self.y + self.size // 2 + 8
+        
+        # Draw background bar (empty)
+        pygame.draw.rect(screen, (100, 100, 100), (bar_x, bar_y, bar_width, bar_height))
+        
+        # Draw ammo bar (filled)
+        ammo_percentage = max(0, self.current_ammo / self.max_ammo) if self.max_ammo > 0 else 0
+        filled_width = bar_width * ammo_percentage
+        
+        # Color changes based on ammo level
+        if ammo_percentage > 0.5:
+            color = (0, 255, 0)  # Green
+        elif ammo_percentage > 0.25:
+            color = (255, 255, 0)  # Yellow
+        else:
+            color = (255, 0, 0)  # Red
+        
+        pygame.draw.rect(screen, color, (bar_x, bar_y, filled_width, bar_height))
+        pygame.draw.rect(screen, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 1)
             
 class RedTower(BaseTower):
     # Targets RED enemies with selectable gun type

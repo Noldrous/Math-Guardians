@@ -99,6 +99,16 @@ class Game:
             for tower in level_map.placed_towers:
                 tower.update(all_enemies, tower_projectiles)
 
+            # Remove towers with depleted ammo
+            for tower in level_map.placed_towers[:]:
+                if tower.current_ammo <= 0:
+                    level_map.placed_towers.remove(tower)
+                    # Also remove from occupied grid
+                    for grid_pos, grid_tower in list(level_map.occupied.items()):
+                        if grid_tower == tower:
+                            del level_map.occupied[grid_pos]
+                            break
+
             # Update projectiles (move toward targets)
             for tower_proj in tower_projectiles[:]:
                 tower_proj.update()
