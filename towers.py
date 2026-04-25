@@ -222,4 +222,4 @@ class YellowTower(BaseTower):
     def shoot(self, projectiles: List):
         # Override shoot to add yellow glow effect
         super().shoot(projectiles)
-        # Add yellow glow effect (could be implemented as a temporary visual effect on the tower)
+        #Add yellow glow effect (could be implemented as a temporary visual effect on the tower) #
