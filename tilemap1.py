@@ -25,12 +25,16 @@ class TileMap:
         # =========================
         # UI (tower selection boxes)
         # =========================
+        self.tower_types = ["machinegun", "sniper", "bazooka"]
+        self.tower_labels = ["Machine Gun Tower", "Sniper Tower", "Bazooka Tower"]
         self.boxes = []
         for i in range(3):
             self.boxes.append(pygame.Rect(20, 250 + (i * 90), 50, 50))
 
         self.colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+        self.color_labels = ["Red", "Green", "Blue"]
 
+        self.holding_tower_type = None
         self.holding_color = None
         self.selected_box_index = -1
         self.show_menu = False
@@ -73,26 +77,28 @@ class TileMap:
         # -------------------------
         # PLACE TOWER
         # -------------------------
-        if self.holding_color is not None:
+        if self.holding_color is not None and self.holding_tower_type is not None:
 
             grid = self.get_grid_pos(pos)
 
             if grid is None:
                 self.holding_color = None
+                self.holding_tower_type = None
                 return
 
             if grid in self.occupied:
                 self.holding_color = None
+                self.holding_tower_type = None
                 return
 
             x, y = self.get_world_pos(grid)
 
             if self.holding_color == (255, 0, 0):
-                tower = RedTower(x, y)
+                tower = RedTower(x, y, gun_type=self.holding_tower_type)
             elif self.holding_color == (0, 255, 0):
-                tower = GreenTower(x, y)
+                tower = GreenTower(x, y, gun_type=self.holding_tower_type)
             elif self.holding_color == (0, 0, 255):
-                tower = BlueTower(x, y)
+                tower = BlueTower(x, y, gun_type=self.holding_tower_type)
             else:
                 return
 
@@ -100,6 +106,7 @@ class TileMap:
             self.placed_towers.append(tower)
 
             self.holding_color = None
+            self.holding_tower_type = None
             return
 
         # -------------------------
@@ -113,6 +120,7 @@ class TileMap:
 
                 if menu_btn.collidepoint(pos):
                     self.holding_color = self.colors[i]
+                    self.holding_tower_type = self.tower_types[self.selected_box_index]
 
             self.show_menu = False
             return
@@ -155,28 +163,47 @@ class TileMap:
 
         screen.blit(grid_surface, (0, 0))
 
-        # UI boxes
-        for box in self.boxes:
-            pygame.draw.rect(screen, (200, 200, 200), box)
+        # UI boxes with tower type labels
+        font_small = pygame.font.SysFont("Arial", 9)
+        for i, box in enumerate(self.boxes):
+            # Highlight selected box
+            if i == self.selected_box_index and self.show_menu:
+                pygame.draw.rect(screen, (100, 200, 255), box)
+            else:
+                pygame.draw.rect(screen, (200, 200, 200), box)
+            
             pygame.draw.rect(screen, (0, 0, 0), box, 2)
+            
+            # Draw tower type label
+            label = self.tower_labels[i]
+            lines = label.split()
+            for j, line in enumerate(lines):
+                text = font_small.render(line, True, (0, 0, 0))
+                text_rect = text.get_rect(center=(box.centerx, box.centery - 5 + j * 10))
+                screen.blit(text, text_rect)
 
         # color menu
         if self.show_menu:
             box = self.boxes[self.selected_box_index]
+            font_tiny = pygame.font.SysFont("Arial", 8)
 
             for i, col in enumerate(self.colors):
-                pygame.draw.rect(
-                    screen,
-                    col,
-                    (box.right + 10 + (i * 45), box.top + 15, 35, 35)
-                )
+                menu_rect = pygame.Rect(box.right + 10 + (i * 45), box.top + 15, 35, 35)
+                pygame.draw.rect(screen, col, menu_rect)
+                pygame.draw.rect(screen, (0, 0, 0), menu_rect, 2)
+                
+                # Draw color label
+                color_label = self.color_labels[i]
+                label_text = font_tiny.render(color_label, True, (255, 255, 255) if sum(col) < 383 else (0, 0, 0))
+                label_rect = label_text.get_rect(center=(menu_rect.centerx, menu_rect.centery + 20))
+                screen.blit(label_text, label_rect)
 
         # towers
         for tower in self.placed_towers:
             tower.draw(screen)
 
         # preview
-        if self.holding_color is not None:
+        if self.holding_color is not None and self.holding_tower_type is not None:
             m = pygame.mouse.get_pos()
             grid = self.get_grid_pos(m)
 
@@ -188,4 +215,4 @@ class TileMap:
                     (x - self.cell_size//2, y - self.cell_size//2,
                      self.cell_size, self.cell_size),
                     2
-                )
+                )#
