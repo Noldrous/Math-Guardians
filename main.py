@@ -16,6 +16,7 @@ class Game:
         pygame.display.set_caption("Tempest Vector")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("Arial", 40)
+        self.announce_font = pygame.font.SysFont("Arial", 30, bold=True)
         self.running = True
         self.assets = {
             "game_background": load_image_alpha("game_world/background.webp"),
@@ -86,7 +87,6 @@ class Game:
 
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:                            
-                        # Ipapasa natin ang click sa TileMap
                         level_map.handle_click(pygame.mouse.get_pos())
 
                         coins = upgrade_manager.handle_click(pygame.mouse.get_pos(), coins, level_map.placed_towers)
@@ -177,10 +177,37 @@ class Game:
                     tower_projectiles.remove(tower_proj)
 
             upgrade_manager.draw(self.screen)
+
+            #ALWAYS ON TOP
+            wave_top_text = coin_font.render(f"Wave: {current_wave}", True, (255, 255, 255))
+            self.screen.blit(wave_top_text, (self.width // 2 - wave_top_text.get_width() // 2, 20))
+            
+            # Current Coins
+            coin_text = coin_font.render(f"Coins: {coins}", True, (255, 215, 0))
+            self.screen.blit(coin_text, (1150, 20))
+
+            if wave_manager.wave_complete and current_wave > 0:
+                timer = wave_manager.wave_timer
+                delay = wave_manager.wave_delay
+
+                if timer < 1.0:
+                    alpha = int((timer / 1.0) * 255)
+                elif timer < delay - 1.0:
+                    alpha = 255
+                else:
+                    alpha = int(((delay - timer) / 1.0) * 255)
+   
+                alpha = max(0, min(255, alpha))
+                
+                announce_surface = self.announce_font.render(f"WAVE {current_wave} CLEARED", True, (100, 255, 100))
+                announce_surface.set_alpha(alpha)
+                
+                self.screen.blit(announce_surface, (self.width // 2 - announce_surface.get_width() // 2, self.height // 2 - 50))
             
             #Current Coins
             coin_text = coin_font.render(f"Coins: {coins}", True, (255, 215, 0))
             self.screen.blit(coin_text, (1150, 20))
+            
 
             # GAME OVER CHECK
             if wall.health <= 0:
