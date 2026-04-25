@@ -1,149 +1,225 @@
 from setting import *
-from typing import List, Tuple
-import math
+from abc import ABC, abstractmethod
+from typing import List, Tuple, Optional
+from enemies import Enemy
 
-class Tower():
-    def __init__(self, x: int, y: int, tower_type: str = "basic"):
-        self.x = x
-        self.y = y
-        self.tower_type = tower_type
-        self.range = 150
-        self.damage = 25
-        self.fire_rate = 60  # frames between shots
-        self.cooldown = 0
-        self.cost = 50
-        
-        # Tower stats by type
-        # tower_stats = {
-        #     "basic": {"range": 150, "damage": 25, "fire_rate": 60, "cost": 50},
-        #     "sniper": {"range": 250, "damage": 75, "fire_rate": 120, "cost": 100},
-        #     "rapid": {"range": 100, "damage": 10, "fire_rate": 20, "cost": 75}
-        # }
-        
-        # stats = tower_stats.get(tower_type, tower_stats["basic"])
-        # self.range = stats["range"]
-        # self.damage = stats["damage"]
-        # self.fire_rate = stats["fire_rate"]
-        # self.cost = stats["cost"]
-        
-        # Visual properties
-        self.size = 40
-        self.color = (100, 100, 255)
-        self.target = None
-        
-    def update(self, enemies: List['Enemy'], projectiles: List['Projectile']):
-        # Find nearest enemy in range
-        self.target = self.find_target(enemies)
-        
-        # Update cooldown
-        if self.cooldown > 0:
-            self.cooldown -= 1
-            return
-            
-        # Shoot if target in range
-        if self.target:
-            if self.cooldown == 0:
-                self.shoot(projectiles)
-                self.cooldown = self.fire_rate
-                
-    # def find_target(self, enemies: List['Enemy']) -> 'Enemy' or None:
-    #     closest_enemy = None
-    #     closest_dist = float('inf')
-        
-    #     for enemy in enemies:
-    #         dist = math.hypot(self.x - enemy.x, self.y - enemy.y)
-    #         if dist <= self.range and dist < closest_dist:
-    #             closest_dist = dist
-    #             closest_enemy = enemy
-                
-    #     return closest_enemy
-        
-    def shoot(self, projectiles: List['Projectile']):
-        # Create projectile towards target
-        proj = Projectile(self.x, self.y, self.target, self.damage)
-        projectiles.append(proj)
-        
-    def draw_range(self, screen: pygame.Surface):
-        # Draw attack range (optional, for debugging/placement)
-        if pygame.mouse.get_pressed()[0]:  # Only show when placing
-            range_surface = pygame.Surface((self.range * 2, self.range * 2), pygame.SRCALPHA)
-            pygame.draw.circle(range_surface, (255, 255, 255, 30), 
-                             (self.range, self.range), self.range)
-            screen.blit(range_surface, (self.x - self.range, self.y - self.range))
-            
-    def draw(self, screen: pygame.Surface):
-        # Draw tower
-        pygame.draw.circle(screen, self.color, (self.x, self.y), self.size//2)
-        pygame.draw.circle(screen, (255, 255, 255), (self.x, self.y), self.size//2, 3)
-        
-        # Draw aiming line to target
-        if self.target:
-            pygame.draw.line(screen, (255, 0, 0), (self.x, self.y), 
-                           (self.target.x, self.target.y), 2)
-            
-
-class EvenTower(Tower):
-    def __init__(self, x: int, y: int):
-        super().__init__(x, y, tower_type="even")
-        self.range = 120
-        self.damage = 15
-        self.fire_rate = 30
-        self.cost = 75
-        self.color = (0, 255, 255)
-
-    def find_target(self, enemies: List['Enemy']) -> 'Enemy' or None:
-        # Prioritize enemies with even number
-        even_enemies = [e for e in enemies if e.number % 2 == 0]
-        if even_enemies:
-            return super().find_target(even_enemies)
-        return super().find_target(enemies)
-
-class OddTower(Tower):
-    def __init__(self, x: int, y: int):
-        super().__init__(x, y, tower_type="odd")
-        self.range = 120
-        self.damage = 15
-        self.fire_rate = 30
-        self.cost = 75
-        self.color = (255, 0, 255)
-
-    def find_target(self, enemies: List['Enemy']) -> 'Enemy' or None:
-        # Prioritize enemies with odd number
-        odd_enemies = [e for e in enemies if e.number % 2 == 1]
-        if odd_enemies:
-            return super().find_target(odd_enemies)
-        return super().find_target(enemies)
-
-
-
-class Projectile:
-    def __init__(self, x: int, y: int, target: 'Enemy', damage: int):
+class TowerProjectile:
+    # Bullet that travels from tower to enemy
+    
+    def __init__(self, x: int, y: int, target, damage: int, color: Tuple[int, int, int]):
         self.x = x
         self.y = y
         self.target = target
         self.damage = damage
-        self.speed = 8
-        self.color = (255, 255, 0)
-        self.size = 6
+        self.color = color
+        self.speed = 8  # pixels per frame
+        self.radius = 5
+        self.active = True
         
-    def update(self, enemies: List['Enemy']):
-        if not self.target or self.target.health <= 0:
-            return False  # Remove this projectile
-            
-        # Move towards target
-        dx = self.target.x - self.x
-        dy = self.target.y - self.y
-        dist = math.hypot(dx, dy)
+    def update(self) -> bool:
+        # Move bullet toward target. Returns True if bullet is still active
+        if not self.target or not self.active:
+            self.active = False
+            return False
         
-        if dist < self.speed:
-            # Hit target
-            self.target.take_damage(self.damage)
+        # Check if target is still alive
+        if not hasattr(self.target, 'health') or self.target.health <= 0:
+            self.active = False
             return False
             
-        # Move towards target
-        self.x += (dx / dist) * self.speed
-        self.y += (dy / dist) * self.speed
+        # Calculate direction to target
+        dx = self.target.pos_x - self.x
+        dy = self.target.pos_y - self.y
+        dist = math.hypot(dx, dy)
+        
+        if dist < self.radius + 15:  # Hit the target
+            self.active = False
+            return False
+        
+        if dist > 0:
+            # Move toward target
+            self.x += (dx / dist) * self.speed
+            self.y += (dy / dist) * self.speed
+            
         return True
         
     def draw(self, screen: pygame.Surface):
-        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.size)
+        # Draw bullet
+        if self.active:
+            pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
+            pygame.draw.circle(screen, (255, 255, 255), (int(self.x), int(self.y)), self.radius, 1)
+
+class BaseTower(ABC):
+    # Abstract base class for all towers
+    
+    def __init__(self, x: int, y: int, range_radius: int, damage: int, 
+                 fire_rate: int, cost: int, color: Tuple[int, int, int]):
+        self.x = x
+        self.y = y
+        self.range_radius = range_radius
+        self.damage = damage
+        self.fire_rate = fire_rate  # frames between shots
+        self.cooldown = 0
+        self.cost = cost
+        self.color = color
+        self.size = 40
+        self.target = None
+        
+    @abstractmethod
+    def is_valid_target(self, enemy) -> bool:      # DEFINE VALID TARGETS FOR EACH TOWER TYPE
+        # Define targeting logic for each tower type
+        pass
+    
+    def update(self, enemies: List, projectiles: List):
+        # Common update logic for all towers
+        self.target = self.find_target(enemies)
+        
+        if self.cooldown > 0:
+            self.cooldown -= 1
+            return
+            
+        if self.target and self.cooldown == 0:
+            self.shoot(projectiles)
+            self.cooldown = self.fire_rate
+            
+    def find_target(self, enemies: List) -> Optional: # FINDS CLOSEST VALID TARGET 
+        # Find closest valid target in range
+        closest_enemy = None
+        closest_dist = float('inf')
+        
+        for enemy in enemies:
+            if not self.is_valid_target(enemy):
+                continue
+            
+            # Check if enemy has required position attributes
+            if not hasattr(enemy, 'pos_x') or not hasattr(enemy, 'pos_y'):
+                continue
+                
+            dist = math.hypot(self.x - enemy.pos_x, self.y - enemy.pos_y)
+            if dist <= self.range_radius and dist < closest_dist:
+                closest_dist = dist
+                closest_enemy = enemy
+                
+        return closest_enemy
+        
+    def shoot(self, projectiles: List):
+        # Create projectile targeting enemy
+        proj = TowerProjectile(self.x, self.y, self.target, self.damage, self.color)
+        projectiles.append(proj)
+        
+    def draw_range(self, screen: pygame.Surface):
+        # Draw attack range preview
+        if pygame.mouse.get_pressed()[0]:
+            range_surface = pygame.Surface((self.range_radius * 2, self.range_radius * 2), pygame.SRCALPHA)
+            pygame.draw.circle(range_surface, (*self.color, 40), 
+                             (self.range_radius, self.range_radius), self.range_radius)
+            screen.blit(range_surface, (self.x - self.range_radius, self.y - self.range_radius))
+            
+    def draw(self, screen: pygame.Surface):
+        # Draw tower and targeting line
+        pygame.draw.circle(screen, self.color, (self.x, self.y), self.size//2)
+        pygame.draw.circle(screen, (255, 255, 255), (self.x, self.y), self.size//2, 3)
+        
+        if self.target:
+            pygame.draw.line(screen, (255, 255, 0), (self.x, self.y), 
+                           (self.target.pos_x, self.target.pos_y), 2)
+            
+class RedTower(BaseTower):
+    #ONLY TARGETS EXACT RED ENEMIES
+    VALID_TARGET = (255, 0, 0)
+
+    def __init__(self, x: int, y: int):
+        super().__init__(x, y,
+                        range_radius=999,
+                        damage=20,
+                        fire_rate=30,
+                        cost=100,
+                        color=(255, 0, 0))
+
+    def is_valid_target(self, enemy) -> bool:
+        # Only target red enemies
+        return hasattr(enemy, 'color') and enemy.color == self.VALID_TARGET
+
+    def target_color(self) -> Tuple[int, int, int]:
+        # Return the color of valid targets for this tower
+        return self.VALID_TARGET
+    
+    def shoot(self, projectiles: List):
+        # Override shoot to add red glow effect
+        super().shoot(projectiles)
+        # Add red glow effect (could be implemented as a temporary visual effect on the tower)
+    
+class BlueTower(BaseTower):
+    # ONLY TARGETS EXACT BLUE ENEMIES
+    VALID_TARGET = (0, 0, 255)
+
+    def __init__(self, x: int, y: int):
+        super().__init__(x, y,
+                        range_radius=999,
+                        damage=20,
+                        fire_rate=30,
+                        cost=100,
+                        color=(0, 0, 255))
+
+    def is_valid_target(self, enemy) -> bool:
+        # Only target blue enemies
+        return hasattr(enemy, 'color') and enemy.color == self.VALID_TARGET
+
+    def target_color(self) -> Tuple[int, int, int]:
+        # Return the color of valid targets for this tower
+        return self.VALID_TARGET
+    
+    def shoot(self, projectiles: List):
+        # Override shoot to add blue glow effect
+        super().shoot(projectiles)
+        # Add blue glow effect (could be implemented as a temporary visual effect on the tower)
+
+class GreenTower(BaseTower):
+    # ONLY TARGETS EXACT GREEN ENEMIES
+    VALID_TARGET = (0, 255, 0)
+
+    def __init__(self, x: int, y: int):
+        super().__init__(x, y,
+                        range_radius=999,
+                        damage=20,
+                        fire_rate=30,
+                        cost=100,
+                        color=(0, 255, 0))
+
+    def is_valid_target(self, enemy) -> bool:
+        # Only target green enemies
+        return hasattr(enemy, 'color') and enemy.color == self.VALID_TARGET
+
+    def target_color(self) -> Tuple[int, int, int]:
+        # Return the color of valid targets for this tower
+        return self.VALID_TARGET
+    
+    def shoot(self, projectiles: List):
+        # Override shoot to add green glow effect
+        super().shoot(projectiles)
+        # Add green glow effect (could be implemented as a temporary visual effect on the tower)
+
+class YellowTower(BaseTower):
+    # ONLY TARGETS EXACT YELLOW ENEMIES
+    VALID_TARGET = (255, 255, 0)
+
+    def __init__(self, x: int, y: int):
+        super().__init__(x, y,
+                        range_radius=999,
+                        damage=20,
+                        fire_rate=30,
+                        cost=100,
+                        color=(255, 255, 0))
+
+    def is_valid_target(self, enemy) -> bool:
+        # Only target yellow enemies
+        return hasattr(enemy, 'color') and enemy.color == self.VALID_TARGET
+
+    def target_color(self) -> Tuple[int, int, int]:
+        # Return the color of valid targets for this tower
+        return self.VALID_TARGET
+
+    def shoot(self, projectiles: List):
+        # Override shoot to add yellow glow effect
+        super().shoot(projectiles)
+        # Add yellow glow effect (could be implemented as a temporary visual effect on the tower)

@@ -63,22 +63,23 @@ class RedEnemy(Enemy):
         super().__init__(health=120, speed=2, damage=10, y=y)
         self.state = "moving"
         self.cooldown = 0
+        self.color = (255, 0, 0)  # Red
 
     def draw(self, screen):
         pygame.draw.rect(screen, "RED", (self.pos_x, self.pos_y, 20, 20))
 
-    def update(self, gate):
+    def update(self, wall):
 
         if self.state == "moving":
             self.pos_x -= self.speed * self.speed_multiplier
 
-            if self.pos_x <= gate.x + gate.width:
+            if self.pos_x <= wall.x + wall.width:
                 self.state = "punch"
 
         elif self.state == "punch":
 
             if self.cooldown <= 0:
-                gate.take_damage(self.damage * self.damage_multiplier)
+                wall.take_damage(self.damage * self.damage_multiplier)
                 self.cooldown = 60
 
         if self.cooldown > 0:
@@ -90,15 +91,16 @@ class BlueEnemy(Enemy):
         self.attack_range = random.randint(250, 400)
         self.cooldown = 0
         self.state = "moving"
+        self.color = (0, 0, 255)  # Blue
 
     def draw(self, screen):
         pygame.draw.rect(screen, "BLUE", (self.pos_x, self.pos_y, 20, 20))
 
-    def update(self, gate, projectiles):
+    def update(self, wall, projectiles):
         if self.state == "moving":
             self.pos_x -= self.speed * self.speed_multiplier
 
-            if self.pos_x - gate.x < self.attack_range:
+            if self.pos_x - wall.x < self.attack_range:
                 self.state = "shoot"
 
         elif self.state == "shoot":
@@ -108,7 +110,7 @@ class BlueEnemy(Enemy):
                     self.pos_x,
                     self.pos_y + 10,
                     speed=6,
-                    damage=self.damage * self.damage_multiplier
+                    damage=self.damage * self.damage_multiplier,
                 )
                 projectiles.append(proj)
 
@@ -128,13 +130,14 @@ class GreenEnemy(Enemy):
 
         self.attack_range = random.randint(40, 80)
         self.cooldown = 0
+        self.color = (0, 255, 0)  # Green
 
     def draw(self, screen):
         pygame.draw.rect(screen, "GREEN", (self.pos_x, self.pos_y, 20, 20))
 
-    def update(self, gate, enemies):
+    def update(self, wall, enemies):
 
-        distance_to_gate = self.pos_x - (gate.x + gate.width)
+        distance_to_wall = self.pos_x - (wall.x + wall.width)
 
         if any(
             enemy != self and distance(self, enemy) < self.heal_range
@@ -144,7 +147,7 @@ class GreenEnemy(Enemy):
         else:
             self.state = "moving"
 
-        if distance_to_gate <= self.attack_range:
+        if distance_to_wall <= self.attack_range:
             self.state = "attacking"
 
 
@@ -168,7 +171,7 @@ class GreenEnemy(Enemy):
 
         elif self.state == "attacking":
             if self.cooldown <= 0:
-                gate.take_damage(self.damage)
+                wall.take_damage(self.damage * self.damage_multiplier)
                 self.cooldown = 90  # attack speed
             else:
                 self.cooldown -= 1
