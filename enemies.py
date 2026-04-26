@@ -2,6 +2,17 @@ from setting import *
 import spritesheet
 from particle import Particle
 
+# Load sounds at module level for efficiency
+ATTACK_SOUND = pygame.mixer.Sound("assets/sound_effects/impact-metal-metal-on-metal-hit-quiet-06.wav")
+ATTACK_SOUND.set_volume(0.4)
+HIT_SOUND = pygame.mixer.Sound("assets/sound_effects/gore-stab-wet-pasta-hits-03.wav")
+HIT_SOUND.set_volume(0.35)
+WALKING_SOUND = pygame.mixer.Sound("assets/sound_effects/foley-step-concrete-leather-shoes-02.wav")
+WALKING_SOUND.set_volume(0.2)
+ENEMY_HIT_SOUND = pygame.mixer.Sound("assets/sound_effects/gore-stab-wet-pasta-hits-03.wav")
+ENEMY_HIT_SOUND.set_volume(0.35)
+
+
 def distance(a, b):
     return math.sqrt((a.pos_x - b.pos_x)**2 + (a.pos_y - b.pos_y)**2)
 
@@ -22,7 +33,7 @@ class Projectile:
             wall.y < self.pos.y < wall.y + wall.height
         ):
             wall.take_damage(self.damage)
-
+            ATTACK_SOUND.play()
             for _ in range(10):
                 particles.append(Particle(self.pos.x, self.pos.y))
 
@@ -52,7 +63,8 @@ class Laser(Projectile):
         # Laser damages wall if beam intersects with wall's y-range
         if wall.y < self.pos.y < wall.y + wall.height:
             wall.take_damage(self.damage)
-
+            if self.age == 1:
+                ATTACK_SOUND.play()  # Play sound on first hit
             if self.age % 3 == 0:  
                 hit_x = wall.x + wall.width 
                 for _ in range(6):
@@ -89,6 +101,8 @@ class Enemy:
         self.speed_multiplier = 1
         self.damage_multiplier = 1
         
+        self.walking_sound_cooldown = 0
+        
     @property
     def max_health(self):
         return self.base_health * self.health_multiplier
@@ -103,6 +117,7 @@ class Enemy:
 
     def take_damage(self, damage):
         self.health -= damage
+        ENEMY_HIT_SOUND.play()
 
 class RedEnemy(Enemy):
     def __init__(self, y, number):
@@ -118,7 +133,7 @@ class RedEnemy(Enemy):
             "punch": []
         }
         self.animation_cooldowns = {
-            "moving": 125,
+            "moving": 150,
             "punch": 250
         }
         
@@ -146,6 +161,12 @@ class RedEnemy(Enemy):
         if self.state == "moving":
 
             self.pos_x -= self.speed * self.speed_multiplier
+            # Play walking sound periodically
+            if self.walking_sound_cooldown <= 0:
+                WALKING_SOUND.play()
+                self.walking_sound_cooldown = 30
+            else:
+                self.walking_sound_cooldown -= 1
 
             if self.pos_x <= wall.x + wall.width:
                 self.state = "punch"
@@ -155,6 +176,7 @@ class RedEnemy(Enemy):
 
             if self.cooldown <= 0:
                 wall.take_damage(self.damage * self.damage_multiplier)
+                ATTACK_SOUND.play()
                 self.cooldown = 45
 
         # RESET FRAME IF STATE CHANGED
@@ -249,21 +271,30 @@ class BlueEnemy(Enemy):
         if self.state == "moving":
 
             self.pos_x -= self.speed * self.speed_multiplier
+            # Play walking sound periodically
+            if self.walking_sound_cooldown <= 0:
+                WALKING_SOUND.play()
+                self.walking_sound_cooldown = 30
+            else:
+                self.walking_sound_cooldown -= 1            # Play walking sound periodically
+            if self.walking_sound_cooldown <= 0:
+                WALKING_SOUND.play()
+                self.walking_sound_cooldown = 30
+            else:
+                self.walking_sound_cooldown -= 1
 
 
         elif self.state == "shoot":
 
             if self.cooldown <= 0:
-
                 laser = Laser(
                     self.pos_x,
                     self.pos_y + 10,
                     damage=self.damage * self.damage_multiplier,
                     wall=wall,
                 )
-
                 projectiles.append(laser)
-
+                ATTACK_SOUND.play()  # Play sound when firing laser
                 self.cooldown = 45
 
             else:
@@ -363,7 +394,12 @@ class GreenEnemy(Enemy):
         if self.state == "moving":
 
             self.pos_x -= self.speed * self.speed_multiplier
-
+            # Play walking sound periodically
+            if self.walking_sound_cooldown <= 0:
+                WALKING_SOUND.play()
+                self.walking_sound_cooldown = 30
+            else:
+                self.walking_sound_cooldown -= 1
 
         elif self.state == "healing":
 
@@ -375,7 +411,7 @@ class GreenEnemy(Enemy):
                             enemy.health + self.heal_amount,
                             enemy.max_health
                         )
-
+                HIT_SOUND.play()  # Play healing sound
                 self.cooldown = 120
             else:
                 self.cooldown -= 1
@@ -385,7 +421,8 @@ class GreenEnemy(Enemy):
 
             if self.cooldown <= 0:
                 wall.take_damage(self.damage * self.damage_multiplier)
-                self.cooldown = 10
+                ATTACK_SOUND.play()
+                self.cooldown = 5
             else:
                 self.cooldown -= 1
 

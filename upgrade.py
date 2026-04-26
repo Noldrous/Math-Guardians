@@ -96,9 +96,9 @@ class UpgradeManager:
                     self.trigger_popup("NOT ENOUGH COINS!")
                     print("Not enough coins!")
                 
-                break 
+                return coins, True  # Return True to indicate button was clicked
                 
-        return coins
+        return coins, False  # Return False if no button was clicked
 
     def trigger_popup(self, message):
         self.popup_msg = message

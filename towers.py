@@ -20,6 +20,12 @@ class TowerProjectile:
         self.active = True
         self.projectile_type = projectile_type
         self.impact_radius = 0  # For AOE effects like bazooka
+        self.sniper_sound = pygame.mixer.Sound("assets/sound_effects/weapons-rifle-assault-rifle-fire-04.wav")
+        self.sniper_sound.set_volume(0.4)
+        self.bazooka_sound = pygame.mixer.Sound("assets/sound_effects/weapons-science-fiction-plasma-cannon-explode-05.wav")
+        self.bazooka_sound.set_volume(0.5)
+        self.machinegun_sound = pygame.mixer.Sound("assets/sound_effects/weapons-rifle-assault-rifle-fire-04.wav")
+        self.machinegun_sound.set_volume(0.4)
         
     def update(self) -> bool:
         # Move bullet toward target. Returns True if bullet is still active
@@ -129,7 +135,7 @@ class BaseTower(ABC):
     # Gun type configs: {type: (damage, fire_rate, cost)}
     GUN_CONFIGS = {
         "machinegun": {"damage": 5, "fire_rate": 8, "cost": 80, "rounds": 3, "max_ammo": 10, "range": 550},
-        "sniper": {"damage": 35, "fire_rate": 60, "cost": 120, "rounds": 1, "max_ammo": 5, "range": 800},
+        "sniper": {"damage": 35, "fire_rate": 60, "cost": 120, "rounds": 1, "max_ammo": 6, "range": 800},
         "bazooka": {"damage": 40, "fire_rate": 50, "cost": 150, "rounds": 1, "max_ammo": 2, "range": 650}
     }
 
@@ -224,6 +230,8 @@ class BaseTower(ABC):
         # Fire 3 machine gun rounds with slight angle spread
         if self.current_ammo <= 0:
             return
+        
+        pygame.mixer.Sound("assets/sound_effects/weapons-rifle-assault-rifle-fire-04.wav").play()
 
         dx = self.target.pos_x - self.x
         dy = self.target.pos_y - self.y
@@ -245,6 +253,8 @@ class BaseTower(ABC):
         if self.current_ammo <= 0:
             return
         
+        pygame.mixer.Sound("assets/sound_effects/weapons-rifle-assault-rifle-fire-04.wav").play()
+        
         proj = SniperRound(self.x, self.y, self.target, self.damage)
         projectiles.append(proj)
         
@@ -254,6 +264,8 @@ class BaseTower(ABC):
         # Fire one bazooka round with explosion radius
         if self.current_ammo <= 0:
             return
+        
+        pygame.mixer.Sound("assets/sound_effects/weapons-science-fiction-plasma-cannon-explode-05.wav").play()
 
         # You can customize splash_radius here (default is 150)
         proj = BazookaRound(self.x, self.y, self.target, self.damage, splash_radius=150)

@@ -32,6 +32,18 @@ class Game:
             "game_over": load_image_alpha("menu/game_over.webp")
         }        
         self.show_popup = False
+        self.UI_click = pygame.mixer.Sound("assets/sound_effects/ui-classic-click-12.wav")
+        self.UI_click.set_volume(0.5)
+        self.place_sound = pygame.mixer.Sound("assets/sound_effects/object-case-toolbox-place-upright-regular-09.wav")
+        self.place_sound.set_volume(1.5)
+        self.menu_music = pygame.mixer.Sound("assets/sound_effects/everything_is_dead-scary-ambience-music-493698.mp3")
+        self.menu_music.set_volume(0.9)
+        self.wave1_music = pygame.mixer.Sound("assets/sound_effects/psychronic-obsidian-cascade-481776.mp3")
+        self.wave1_music.set_volume(0.9)
+        self.UPGRADE_SOUND = pygame.mixer.Sound("assets/sound_effects/ui-classic-retro-computer-successful-02.wav")
+        self.UPGRADE_SOUND.set_volume(0.4)
+        self.game_over_music = pygame.mixer.Sound("assets/sound_effects/lnplusmusic-scary-dark-horror-music-469615.mp3")
+        self.game_over_music.set_volume(0.7)
     
     def draw_button(self, img, rect):
         mouse = pygame.mouse.get_pos()
@@ -40,6 +52,7 @@ class Game:
 
     # ---------------- MENU ----------------
     def start_menu(self):
+        self.menu_music.play(-1)  # Play menu music on loop
         play_button = pygame.transform.scale(self.assets["play_button"], (300, 150))
         instruction_button = pygame.transform.scale(self.assets["instruction_button"], (300, 150))
         title = pygame.transform.scale(self.assets["title"], (950, 600))
@@ -97,20 +110,26 @@ class Game:
 
                         # CLOSE POPUP
                         if self.show_popup and self.close_rect.collidepoint(event.pos):
+                            self.UI_click.play()
                             self.show_popup = False
 
                         # OPEN POPUP
                         elif instruction_rect.collidepoint(event.pos):
+                            self.UI_click.play()
                             self.show_popup = True
 
                         # START GAME
                         elif play_rect.collidepoint(event.pos) and not self.show_popup:
+                            self.menu_music.stop()
+                            self.UI_click.play()
                             self.game()
 
             pygame.display.update()
             self.clock.tick(60)
 
     def game_over(self):
+        self.wave1_music.stop()
+        self.game_over_music.play(-1)  # Play game over music on loop
         return_button = pygame.transform.scale(self.assets["return_button"], (200, 100))
         restart_button = pygame.transform.scale(self.assets["restart_button"], (200, 100))
         game_over = pygame.transform.scale(self.assets["game_over"], (500, 200))
@@ -146,9 +165,13 @@ class Game:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         if restart_rect.collidepoint(event.pos):
+                            self.game_over_music.stop()   
+                            self.UI_click.play()
                             self.game()
 
                         if return_rect.collidepoint(event.pos):
+                            self.game_over_music.stop()
+                            self.UI_click.play()
                             self.start_menu()
                         
 
@@ -156,6 +179,7 @@ class Game:
             self.clock.tick(60)
 
     def game(self):
+        self.wave1_music.play(-1)  # Play wave music on loop
         level_map = TileMap()
         wave_manager = WaveManager()
         last_announced_wave = 0
@@ -184,10 +208,16 @@ class Game:
                     sys.exit()
 
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:                            
-                        level_map.handle_click(pygame.mouse.get_pos())
+                    if event.button == 1:
+                        tower_placed = level_map.handle_click(pygame.mouse.get_pos())
+                        coins, upgrade_clicked = upgrade_manager.handle_click(pygame.mouse.get_pos(), coins, level_map.placed_towers)
+                        
+                        # Only play sound if something was actually clicked
+                        if tower_placed:
+                            self.place_sound.play()
+                        elif upgrade_clicked:
+                            self.UPGRADE_SOUND.play()
 
-                        coins = upgrade_manager.handle_click(pygame.mouse.get_pos(), coins, level_map.placed_towers)
             wave_manager.update(dt)
             all_enemies = wave_manager.all_enemies
 
@@ -222,10 +252,9 @@ class Game:
             # Update projectiles (move toward targets)
             for tower_proj in tower_projectiles[:]:
                 tower_proj.update()
-            
+
             for e in explosions:
                 e.update()
-
 
             # Tower projectiles damage enemies
             for tower_proj in tower_projectiles[:]:
@@ -250,6 +279,7 @@ class Game:
                         tower_proj.active = False
 
             # draw
+
             self.screen.blit(game_background, (0, 0))
             wall.draw(self.screen)
             level_map.draw(self.screen)
@@ -262,7 +292,6 @@ class Game:
 
             for e in explosions:
                 e.draw(self.screen)
-
             for proj in projectiles:
                 proj.draw(self.screen)
 
@@ -288,7 +317,7 @@ class Game:
                 p.update()
                 if p.lifetime <= 0:
                     particles.remove(p)
-            
+
             for e in explosions[:]:
                 if not e.alive:
                     explosions.remove(e)
