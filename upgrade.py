@@ -3,7 +3,7 @@ from towers import *
 
 class UpgradeManager:
     def __init__(self, screen_height):
-        self.costs = {"machinegun": 50, "sniper": 100, "bazooka": 150, "repair": 80}
+        self.costs = {"machinegun": 50, "sniper": 100, "bazooka": 150, "repair": 60}
         self.damage_bonus = {"machinegun": 3, "sniper": 15, "bazooka": 20}
 
         self.ammo_bonus = {"machinegun": 5, "sniper": 2, "bazooka": 1}
@@ -84,7 +84,7 @@ class UpgradeManager:
                 if gun == "repair":
                     if wall and coins >= cost and wall.health < wall.max_health:
                         coins -= cost
-                        wall.health += 20
+                        wall.health += 150
                         wall.health = min(wall.health, wall.max_health)
 
                         self.trigger_popup("WALL REPAIRED!")
