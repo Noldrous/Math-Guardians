@@ -66,8 +66,8 @@ class MachineGunRound(TowerProjectile):
         
     def draw(self, screen: pygame.Surface):
         if self.active:
-            pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
-            pygame.draw.circle(screen, (255, 200, 200), (int(self.x), int(self.y)), self.radius, 1)
+            pygame.draw.circle(screen, (255,212,110), (int(self.x), int(self.y)), self.radius)
+            pygame.draw.circle(screen, (0, 0, 0), (int(self.x), int(self.y)), self.radius, 1)
 
 
 class SniperRound(TowerProjectile):
@@ -82,7 +82,7 @@ class SniperRound(TowerProjectile):
             pygame.draw.line(screen, (150, 200, 150), (int(self.prev_x), int(self.prev_y)), 
                            (int(self.x), int(self.y)), 2)
             # Draw projectile
-            pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
+            pygame.draw.circle(screen, (67,49,69), (int(self.x), int(self.y)), self.radius)
             pygame.draw.circle(screen, (200, 255, 200), (int(self.x), int(self.y)), self.radius, 2)
 
 
@@ -98,8 +98,8 @@ class BazookaRound(TowerProjectile):
     def draw(self, screen: pygame.Surface):
         if self.active:
             # Draw projectile with glow
-            pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
-            pygame.draw.circle(screen, (200, 200, 255), (int(self.x), int(self.y)), self.radius, 3)
+            pygame.draw.circle(screen, (47,47,47), (int(self.x), int(self.y)), self.radius)
+            pygame.draw.circle(screen, (255, 255, 255), (int(self.x), int(self.y)), self.radius, 3)
 
 class Explosion:
     def __init__(self, x, y, radius):
