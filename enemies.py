@@ -118,7 +118,7 @@ class RedEnemy(Enemy):
             "punch": []
         }
         self.animation_cooldowns = {
-            "moving": 150,
+            "moving": 125,
             "punch": 250
         }
         
@@ -385,7 +385,7 @@ class GreenEnemy(Enemy):
 
             if self.cooldown <= 0:
                 wall.take_damage(self.damage * self.damage_multiplier)
-                self.cooldown = 90
+                self.cooldown = 10
             else:
                 self.cooldown -= 1
 

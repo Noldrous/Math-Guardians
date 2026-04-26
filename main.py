@@ -164,6 +164,7 @@ class Game:
         projectiles = []
         tower_projectiles = []
         particles = []
+        explosions = []
         
         #loadimage
         game_background = self.assets["game_background"]
@@ -221,6 +222,10 @@ class Game:
             # Update projectiles (move toward targets)
             for tower_proj in tower_projectiles[:]:
                 tower_proj.update()
+            
+            for e in explosions:
+                e.update()
+
 
             # Tower projectiles damage enemies
             for tower_proj in tower_projectiles[:]:
@@ -232,6 +237,7 @@ class Game:
                         if tower_proj.projectile_type == "bazooka" and not tower_proj.has_exploded:
                             # Apply splash damage to all enemies in range
                             explosion_x, explosion_y = tower_proj.target.pos_x, tower_proj.target.pos_y
+                            explosions.append(Explosion(explosion_x, explosion_y, tower_proj.splash_radius))
                             for enemy in all_enemies:
                                 if hasattr(enemy, 'pos_x') and hasattr(enemy, 'pos_y'):
                                     splash_dist = math.hypot(enemy.pos_x - explosion_x, enemy.pos_y - explosion_y)
@@ -244,7 +250,6 @@ class Game:
                         tower_proj.active = False
 
             # draw
-
             self.screen.blit(game_background, (0, 0))
             wall.draw(self.screen)
             level_map.draw(self.screen)
@@ -254,6 +259,9 @@ class Game:
 
             for tower_proj in tower_projectiles:
                 tower_proj.draw(self.screen)
+
+            for e in explosions:
+                e.draw(self.screen)
 
             for proj in projectiles:
                 proj.draw(self.screen)
@@ -280,6 +288,10 @@ class Game:
                 p.update()
                 if p.lifetime <= 0:
                     particles.remove(p)
+            
+            for e in explosions[:]:
+                if not e.alive:
+                    explosions.remove(e)
 
             upgrade_manager.draw(self.screen)
 

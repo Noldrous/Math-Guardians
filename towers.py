@@ -101,13 +101,36 @@ class BazookaRound(TowerProjectile):
             pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
             pygame.draw.circle(screen, (200, 200, 255), (int(self.x), int(self.y)), self.radius, 3)
 
+class Explosion:
+    def __init__(self, x, y, radius):
+        self.x = x
+        self.y = y
+        self.radius = 0
+        self.max_radius = radius
+        self.alive = True
+
+    def update(self):
+        self.radius += 10
+        if self.radius >= self.max_radius:
+            self.alive = False
+
+    def draw(self, screen):
+        if self.alive:
+            pygame.draw.circle(
+                screen,
+                (255, 150, 0),
+                (int(self.x), int(self.y)),
+                int(self.radius),
+                3
+            )
+
 class BaseTower(ABC):
     # Abstract base class for all towers
     # Gun type configs: {type: (damage, fire_rate, cost)}
     GUN_CONFIGS = {
-        "machinegun": {"damage": 5, "fire_rate": 8, "cost": 80, "rounds": 3, "max_ammo": 10, "range": 500},
+        "machinegun": {"damage": 5, "fire_rate": 8, "cost": 80, "rounds": 3, "max_ammo": 10, "range": 550},
         "sniper": {"damage": 35, "fire_rate": 60, "cost": 120, "rounds": 1, "max_ammo": 5, "range": 800},
-        "bazooka": {"damage": 40, "fire_rate": 50, "cost": 150, "rounds": 1, "max_ammo": 2, "range": 450}
+        "bazooka": {"damage": 40, "fire_rate": 50, "cost": 150, "rounds": 1, "max_ammo": 2, "range": 650}
     }
 
     def __init__(self, x: int, y: int, tower_color: Tuple[int, int, int], 
