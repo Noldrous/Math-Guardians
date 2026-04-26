@@ -3,7 +3,7 @@ from towers import *
 
 class UpgradeManager:
     def __init__(self, screen_height):
-        self.costs = {"machinegun": 50, "sniper": 100, "bazooka": 150}
+        self.costs = {"machinegun": 50, "sniper": 100, "bazooka": 150, "repair": 80}
         self.damage_bonus = {"machinegun": 3, "sniper": 15, "bazooka": 20}
 
         self.ammo_bonus = {"machinegun": 5, "sniper": 2, "bazooka": 1}
@@ -20,7 +20,8 @@ class UpgradeManager:
         button_info = [
             ("machinegun", "assets/img/upgrade_button/upgrade_machine_gun.webp", 40),
             ("sniper", "assets/img/upgrade_button/upgrade_sniper.webp", 160),
-            ("bazooka", "assets/img/upgrade_button/upgrade_bazooka.webp", 280)
+            ("bazooka", "assets/img/upgrade_button/upgrade_bazooka.webp", 280),
+            ("repair", "assets/img/upgrade_button/repair.webp", 400)  
         ]
         
         self.images = {}
@@ -71,34 +72,50 @@ class UpgradeManager:
         center_x, center_y = screen.get_width() // 2, screen.get_height() // 2
         screen.blit(fade_surface, fade_surface.get_rect(center=(center_x, center_y - 50)))
 
-    def handle_click(self, mouse_pos, coins, placed_towers):
+    def handle_click(self, mouse_pos, coins, placed_towers, wall=None):
+        upgrade_clicked = False
+        repair_clicked = False
+
         for gun, rect in self.buttons.items():
             if rect.collidepoint(mouse_pos):
                 cost = self.costs[gun]
-                
+
+                # 🔧 REPAIR
+                if gun == "repair":
+                    if wall and coins >= cost and wall.health < wall.max_health:
+                        coins -= cost
+                        wall.health += 20
+                        wall.health = min(wall.health, wall.max_health)
+
+                        self.trigger_popup("WALL REPAIRED!")
+                        return coins, False, True
+                    else:
+                        self.trigger_popup("CANNOT REPAIR!")
+                        return coins, False, False
+
+                # 🟡 UPGRADES
                 if coins >= cost:
                     coins -= cost
                     self.costs[gun] = int(cost * 1.5)
-                    
+
                     BaseTower.GUN_CONFIGS[gun]["damage"] += self.damage_bonus[gun]
                     BaseTower.GUN_CONFIGS[gun]["max_ammo"] += self.ammo_bonus[gun]
-                    
 
                     for tower in placed_towers:
                         if tower.gun_type == gun:
                             tower.damage = BaseTower.GUN_CONFIGS[gun]["damage"]
                             tower.max_ammo = BaseTower.GUN_CONFIGS[gun]["max_ammo"]
                             tower.current_ammo = tower.max_ammo
-                    
+
                     self.trigger_popup(f"{gun.upper()} UPGRADED!")
-                    print(f"{gun} upgraded! New damage: {BaseTower.GUN_CONFIGS[gun]['damage']}")
+                    return coins, True, False
+
                 else:
                     self.trigger_popup("NOT ENOUGH COINS!")
-                    print("Not enough coins!")
-                
-                return coins, True  # Return True to indicate button was clicked
-                
-        return coins, False  # Return False if no button was clicked
+                    return coins, False, False
+
+        # ❗ ONLY RETURN HERE IF NOTHING WAS CLICKED
+        return coins, False, False
 
     def trigger_popup(self, message):
         self.popup_msg = message

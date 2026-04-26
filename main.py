@@ -210,7 +210,7 @@ class Game:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         tower_placed = level_map.handle_click(pygame.mouse.get_pos())
-                        coins, upgrade_clicked = upgrade_manager.handle_click(pygame.mouse.get_pos(), coins, level_map.placed_towers)
+                        coins, upgrade_clicked, repair_clicked = upgrade_manager.handle_click(pygame.mouse.get_pos(), coins, level_map.placed_towers, wall)
                         
                         # Only play sound if something was actually clicked
                         if tower_placed:
